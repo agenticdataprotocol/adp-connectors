@@ -1,3 +1,17 @@
+# Copyright 2026 Datastrato, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """Unit tests for adp_mcp.server."""
 
 import json
@@ -7,9 +21,8 @@ from contextlib import asynccontextmanager
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from mcp.shared.memory import create_connected_server_and_client_session
-
 from adp_sdk.shared import ADPError
+from mcp.shared.memory import create_connected_server_and_client_session
 
 from adp_mcp.server import create_server
 
