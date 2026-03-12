@@ -1,6 +1,6 @@
 # adp-connectors
 
-A monorepo for ADP (Agentic Data Protocol) integration sub-projects.
+A monorepo for ADP (Agentic Data Protocol) connector sub-projects.
 
 ## Sub-projects
 

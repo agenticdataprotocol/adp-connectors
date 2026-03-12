@@ -68,6 +68,9 @@ def create_server(config_path: str) -> FastMCP:
         Yields:
             A dict containing the initialized ClientSession.
         """
+        # stdio_client is an async context manager: it opens the subprocess transport on
+        # enter and closes it (terminating the hypervisor process) on exit, so no explicit
+        # close call is needed here.
         async with stdio_client(
             sys.executable,
             args=hypervisor_args,

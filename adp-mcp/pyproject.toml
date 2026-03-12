@@ -1,6 +1,6 @@
 [project]
 name = "adp-mcp"
-version = "0.1.0"
+version = "0.1.0.dev0"
 description = "ADP MCP Bridge: Expose ADP Hypervisor resources as MCP tools"
 readme = "README.md"
 requires-python = ">=3.11"
