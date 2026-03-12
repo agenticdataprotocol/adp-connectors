@@ -16,6 +16,10 @@ uv.lock
 # Logs
 *.log
 
+# Docker demo log output
+adp-mcp/docker/logs/*
+!adp-mcp/docker/logs/.gitkeep
+
 # Editors
 .DS_Store
 .idea/

@@ -1,0 +1,143 @@
+version: "1.0.0"
+
+resources:
+  - resourceId: "demo:customers"
+    intentClasses: ["LOOKUP", "QUERY"]
+    version: 1
+    description: "Customer profiles"
+    backendId: "pg_demo"
+    sourceDefinition:
+      source: "customers"
+      fields:
+        - fieldId: "id"
+          type: "INTEGER"
+          description: "Unique customer identifier"
+        - fieldId: "name"
+          type: "STRING"
+          description: "Full name"
+        - fieldId: "email"
+          type: "STRING"
+          description: "Email address"
+        - fieldId: "city"
+          type: "STRING"
+          description: "City of residence"
+        - fieldId: "created_at"
+          type: "TIMESTAMP"
+          description: "Account creation time"
+
+  - resourceId: "demo:products"
+    intentClasses: ["LOOKUP", "QUERY"]
+    version: 1
+    description: "Product catalog"
+    backendId: "pg_demo"
+    sourceDefinition:
+      source: "products"
+      fields:
+        - fieldId: "id"
+          type: "INTEGER"
+          description: "Unique product identifier"
+        - fieldId: "name"
+          type: "STRING"
+          description: "Product name"
+        - fieldId: "category"
+          type: "STRING"
+          description: "Product category"
+        - fieldId: "price"
+          type: "FLOAT"
+          description: "Unit price"
+        - fieldId: "in_stock"
+          type: "BOOLEAN"
+          description: "Whether the product is currently in stock"
+
+  - resourceId: "demo:orders"
+    intentClasses: ["LOOKUP", "QUERY"]
+    version: 1
+    description: "Customer orders"
+    backendId: "pg_demo"
+    sourceDefinition:
+      source: "orders"
+      fields:
+        - fieldId: "id"
+          type: "INTEGER"
+          description: "Unique order identifier"
+        - fieldId: "customer_id"
+          type: "INTEGER"
+          description: "Reference to the customer"
+        - fieldId: "product_id"
+          type: "INTEGER"
+          description: "Reference to the product"
+        - fieldId: "quantity"
+          type: "INTEGER"
+          description: "Number of items ordered"
+        - fieldId: "total"
+          type: "FLOAT"
+          description: "Total amount"
+        - fieldId: "status"
+          type: "STRING"
+          description: "Order status (pending, shipped, delivered, cancelled)"
+        - fieldId: "ordered_at"
+          type: "TIMESTAMP"
+          description: "Time the order was placed"
+
+  - resourceId: "demo:items"
+    intentClasses: ["LOOKUP", "QUERY"]
+    version: 1
+    description: "Product catalog with semantic embeddings for similarity search"
+    backendId: "pgvector_demo"
+    sourceDefinition:
+      source: "items"
+      fields:
+        - fieldId: "id"
+          type: "INTEGER"
+          description: "Unique item identifier"
+        - fieldId: "title"
+          type: "STRING"
+          description: "Item title"
+        - fieldId: "category"
+          type: "STRING"
+          description: "Item category"
+        - fieldId: "price"
+          type: "FLOAT"
+          description: "Unit price"
+        - fieldId: "embedding"
+          type: "VECTOR"
+          description: "3-D semantic embedding [tech, office, home]"
+          constraints:
+            vector:
+              dimensions: 3
+              distance_function: "COSINE"
+
+  - resourceId: "demo:user_profiles"
+    intentClasses: ["LOOKUP", "QUERY"]
+    version: 1
+    description: "Application user profiles stored in MongoDB"
+    backendId: "mongo_demo"
+    sourceDefinition:
+      source: "users"
+      fields:
+        - fieldId: "user_id"
+          type: "STRING"
+          description: "Unique user identifier"
+        - fieldId: "name"
+          type: "STRING"
+          description: "Full name"
+        - fieldId: "email"
+          type: "STRING"
+          description: "Email address"
+        - fieldId: "segment"
+          type: "STRING"
+          description: "Customer segment"
+        - fieldId: "status"
+          type: "STRING"
+          description: "Account lifecycle status"
+        - fieldId: "login_count"
+          type: "INTEGER"
+          description: "Number of successful logins"
+
+  - resourceId: "demo:invoices"
+    intentClasses: ["LOOKUP", "QUERY", "INGEST", "REVISE"]
+    version: 1
+    description: "Order invoice files stored on the local filesystem, organised by fulfilment status"
+    backendId: "localfs_demo"
+    sourceDefinition:
+      source: "invoices"

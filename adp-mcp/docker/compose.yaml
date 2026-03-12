@@ -1,0 +1,72 @@
+services:
+  mcp-runtime:
+    build:
+      context: .
+    container_name: adp-mcp-runtime
+    depends_on:
+      postgres:
+        condition: service_healthy
+      pgvector:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    volumes:
+      - ./config:/opt/adp/config:ro
+      - ./localfs:/opt/adp/localfs:ro
+      - ./logs:/opt/adp/logs
+    environment:
+      - ADP_USERNAME=demo
+      - ADP_PASSWORD=demo
+      - PG_PASSWORD=adp_pass
+      - MONGO_PASSWORD=adp_pass
+
+  postgres:
+    image: postgres:15
+    container_name: adp-postgres
+    environment:
+      POSTGRES_USER: adp_user
+      POSTGRES_PASSWORD: adp_pass
+      POSTGRES_DB: adp_demo
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./seed/postgres:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U adp_user -d adp_demo"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  pgvector:
+    image: pgvector/pgvector:pg15
+    container_name: adp-pgvector
+    environment:
+      POSTGRES_USER: adp_user
+      POSTGRES_PASSWORD: adp_pass
+      POSTGRES_DB: adp_vector_demo
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./seed/pgvector:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U adp_user -d adp_vector_demo"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  mongodb:
+    image: mongo:7
+    container_name: adp-mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: adp_user
+      MONGO_INITDB_ROOT_PASSWORD: adp_pass
+      MONGO_INITDB_DATABASE: adp_mongo_demo
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./seed/mongodb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "mongosh", "--username", "adp_user", "--password", "adp_pass", "--authenticationDatabase", "admin", "--quiet", "--eval", "db.adminCommand({ ping: 1 })"]
+      interval: 5s
+      timeout: 5s
+      retries: 10

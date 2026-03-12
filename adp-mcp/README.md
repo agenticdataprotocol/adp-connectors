@@ -55,6 +55,19 @@ If `ADP_USERNAME` is not set, the server connects anonymously.
 }
 ```
 
+## Docker Quickstart
+
+The [`docker/`](./docker/) directory contains a self-contained Docker Compose stack
+that starts all backend dependencies and a prepared `mcp-runtime` container.
+This is the fastest way to try ADP MCP without installing anything locally.
+
+```bash
+cd adp-mcp/docker
+docker compose up -d
+```
+
+See [docker/README.md](./docker/README.md) for the full setup guide and MCP client configuration.
+
 ## Development
 
 ```bash
