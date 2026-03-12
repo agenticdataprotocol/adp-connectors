@@ -22,10 +22,14 @@ pip install adp-mcp
 ## Usage
 
 ```bash
-adp-mcp --config /path/to/adp/manifest [--log-level INFO] [--log-file /path/to/log]
+adp-mcp --config /path/to/adp/manifest [--log-level INFO]
 ```
 
-Set `--log-file stderr` to write logs to stderr instead of a file.
+Logs are written to stderr. To redirect them to a file, use shell redirection:
+
+```bash
+adp-mcp --config /path/to/adp/manifest 2>/path/to/adp-mcp.log
+```
 
 ### Authentication
 

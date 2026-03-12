@@ -11,7 +11,6 @@ import os
 import sys
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from pathlib import Path
 from typing import Annotated, Any, cast
 
 from adp_sdk import ClientSession, IntentClass, basic_auth, stdio_client
@@ -20,7 +19,7 @@ from adp_sdk.types.intents import Intent
 from adp_sdk.types.requests import DiscoverFilter
 from mcp.server.fastmcp import Context, FastMCP
 from mcp.shared.exceptions import McpError
-from mcp.types import INTERNAL_ERROR, ErrorData
+from mcp.types import INTERNAL_ERROR, INVALID_PARAMS, ErrorData
 from pydantic import Field, TypeAdapter, ValidationError
 
 logger = logging.getLogger(__name__)
@@ -30,7 +29,7 @@ _INTENT_ADAPTER: TypeAdapter[Intent] = TypeAdapter(Intent)
 _ENV_VAR_USERNAME = "ADP_USERNAME"
 _ENV_VAR_PASSWORD = "ADP_PASSWORD"
 
-_VALID_INTENT_CLASSES: frozenset[str] = frozenset({"LOOKUP", "QUERY", "INGEST", "REVISE", "*"})
+_VALID_INTENT_CLASSES: frozenset[str] = frozenset({"LOOKUP", "QUERY", "INGEST", "REVISE"})
 
 
 def _build_authorization() -> str | None:
@@ -46,14 +45,11 @@ def _build_authorization() -> str | None:
     return str(basic_auth(username, password))
 
 
-def create_server(config_path: str, log_dir: str | None = None) -> FastMCP:
+def create_server(config_path: str) -> FastMCP:
     """Create and configure the MCP server with ADP bridge tools.
 
     Args:
         config_path: Path to the ADP manifest directory.
-        log_dir: Directory for log files. When set, the Hypervisor subprocess
-            writes its log to ``<log_dir>/hypervisor.log``. Otherwise the
-            Hypervisor uses its own default (``<config-dir>/hypervisor.log``).
 
     Returns:
         A configured FastMCP instance ready to run.
@@ -61,9 +57,6 @@ def create_server(config_path: str, log_dir: str | None = None) -> FastMCP:
     authorization = _build_authorization()
 
     hypervisor_args = ["-m", "adp_hypervisor", "--config", config_path]
-    if log_dir:
-        hypervisor_log = str(Path(log_dir) / "hypervisor.log")
-        hypervisor_args += ["--log-file", hypervisor_log]
 
     @asynccontextmanager
     async def app_lifespan(server: FastMCP) -> AsyncIterator[dict[str, ClientSession]]:
@@ -112,6 +105,7 @@ def create_server(config_path: str, log_dir: str | None = None) -> FastMCP:
         session: ClientSession = ctx.request_context.lifespan_context["session"]
         # Normalize empty strings to None so agents passing "" are treated as "no filter".
         domain_prefix = domain_prefix or None
+        intent_class = intent_class or None
         keyword = keyword or None
         cursor = cursor or None
         filter_obj: DiscoverFilter | None = None
@@ -119,7 +113,7 @@ def create_server(config_path: str, log_dir: str | None = None) -> FastMCP:
             if intent_class is not None and intent_class not in _VALID_INTENT_CLASSES:
                 raise McpError(
                     ErrorData(
-                        code=INTERNAL_ERROR,
+                        code=INVALID_PARAMS,
                         message=f"Unknown intent class: {intent_class!r}",
                     )
                 )
@@ -175,7 +169,7 @@ def create_server(config_path: str, log_dir: str | None = None) -> FastMCP:
         cursor = cursor or None
         if intent_class not in _VALID_INTENT_CLASSES:
             raise McpError(
-                ErrorData(code=INTERNAL_ERROR, message=f"Unknown intent class: {intent_class!r}")
+                ErrorData(code=INVALID_PARAMS, message=f"Unknown intent class: {intent_class!r}")
             )
         intent_class_typed = cast(IntentClass, intent_class)
         logger.debug(
@@ -226,7 +220,7 @@ def create_server(config_path: str, log_dir: str | None = None) -> FastMCP:
             result = await session.validate(intent=intent_obj)
         except ValidationError as e:
             logger.error("adp_validate failed (validation): %s", e, exc_info=True)
-            raise McpError(ErrorData(code=INTERNAL_ERROR, message=str(e))) from e
+            raise McpError(ErrorData(code=INVALID_PARAMS, message=str(e))) from e
         except ADPError as e:
             logger.error("adp_validate failed: %s", e, exc_info=True)
             raise McpError(ErrorData(code=INTERNAL_ERROR, message=str(e))) from e
@@ -266,7 +260,7 @@ def create_server(config_path: str, log_dir: str | None = None) -> FastMCP:
             result = await session.execute(intent=intent_obj, cursor=cursor)
         except ValidationError as e:
             logger.error("adp_execute failed (validation): %s", e, exc_info=True)
-            raise McpError(ErrorData(code=INTERNAL_ERROR, message=str(e))) from e
+            raise McpError(ErrorData(code=INVALID_PARAMS, message=str(e))) from e
         except ADPError as e:
             logger.error("adp_execute failed: %s", e, exc_info=True)
             raise McpError(ErrorData(code=INTERNAL_ERROR, message=str(e))) from e
