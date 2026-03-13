@@ -114,6 +114,29 @@ Add the following to your workspace `.vscode/mcp.json` (or user-level
 > **Replace** `/absolute/path/to/adp-mcp/docker/compose.yaml` with the actual
 > path on your machine (same as the Claude Desktop config above).
 
+### Codex CLI
+
+Add the following to `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.adp]
+transport = { command = "docker", args = [
+  "compose",
+  "-f", "/absolute/path/to/adp-mcp/docker/compose.yaml",
+  "exec", "-iT",
+  "mcp-runtime",
+  "adp-mcp", "--config", "/opt/adp/config"
+] }
+enabled = true
+```
+
+> **Replace** `/absolute/path/to/adp-mcp/docker/compose.yaml` with the actual
+> path on your machine. You can obtain it by running:
+>
+> ```bash
+> cd adp-mcp/docker && pwd
+> ```
+
 ## Demo Resources
 
 The stack is seeded with the following resources:

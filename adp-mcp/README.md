@@ -22,13 +22,13 @@ pip install adp-mcp
 ## Usage
 
 ```bash
-adp-mcp --config /path/to/adp/manifest [--log-level INFO]
+adp-mcp --config /path/to/adp/config [--log-level INFO]
 ```
 
 Logs are written to stderr. To redirect them to a file, use shell redirection:
 
 ```bash
-adp-mcp --config /path/to/adp/manifest 2>/path/to/adp-mcp.log
+adp-mcp --config /path/to/adp/config 2>/path/to/adp-mcp.log
 ```
 
 ### Authentication
@@ -44,15 +44,46 @@ If `ADP_USERNAME` is not set, the server connects anonymously.
 
 ### MCP Client Configuration
 
+#### Claude Desktop
+
+Add the following to `claude_desktop_config.json`:
+
 ```json
 {
   "mcpServers": {
     "adp": {
       "command": "adp-mcp",
-      "args": ["--config", "/path/to/adp/manifest"]
+      "args": ["--config", "/path/to/adp/config"]
     }
   }
 }
+```
+
+#### VS Code
+
+Add the following to your workspace `.vscode/mcp.json` (or user-level
+`settings.json` under `"mcp.servers"`):
+
+```json
+{
+  "servers": {
+    "adp": {
+      "type": "stdio",
+      "command": "adp-mcp",
+      "args": ["--config", "/path/to/adp/config"]
+    }
+  }
+}
+```
+
+#### Codex CLI
+
+Add the following to `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.adp]
+transport = { command = "adp-mcp", args = ["--config", "/path/to/adp/config"] }
+enabled = true
 ```
 
 ## Docker Quickstart
