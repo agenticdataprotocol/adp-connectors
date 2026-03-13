@@ -1,0 +1,17 @@
+# License header check configuration.
+# Files matching include_patterns are required to have the copyright header.
+# Files matching exclude_patterns are skipped even if they match an include pattern.
+# Patterns use Python pathlib glob syntax (** matches across directory boundaries).
+# To add new file types or directories, edit this file instead of check-license.py.
+
+copyright_marker = "Copyright 2026 Datastrato, Inc."
+
+include_patterns = [
+    "adp-mcp/src/**/*.py",
+    "adp-mcp/tests/**/*.py",
+    "scripts/*.py",
+    ".github/workflows/*.yml",
+    "CONTRIBUTING.md",
+]
+
+exclude_patterns = []

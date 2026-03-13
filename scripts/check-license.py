@@ -12,62 +12,63 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Check that covered files contain the required license header."""
+"""Check that all files matching include patterns have the required license header.
 
-from __future__ import annotations
+Configuration is read from .license-check.toml in the project root.
+To add new file types or directories to check, edit .license-check.toml instead of this script.
+"""
 
-import os
 import sys
+import tomllib
 from pathlib import Path
 
-COPYRIGHT_MARKER = "Copyright 2026 Datastrato, Inc."
 
-SCAN_RULES = [
-    {"dirs": ["adp-mcp/src", "adp-mcp/tests", "scripts"], "ext": ".py"},
-    {"dirs": [os.path.join(".github", "workflows")], "ext": ".yml"},
-]
-SCAN_FILES = [Path("CONTRIBUTING.md")]
-SKIP_DIRS = {".venv", "dist", "__pycache__", ".mypy_cache", ".pytest_cache", ".ruff_cache", ".worktrees"}
+def main() -> None:
+    root = Path(__file__).resolve().parent.parent
+    config_path = root / ".license-check.toml"
 
+    if not config_path.exists():
+        print(f"Error: config file not found: {config_path}")
+        sys.exit(1)
 
-def should_skip_dir(dirname: str) -> bool:
-    return dirname in SKIP_DIRS
+    with config_path.open("rb") as f:
+        config = tomllib.load(f)
 
+    marker: str = config.get("copyright_marker", "Copyright 2026 Datastrato, Inc.")
+    include_patterns: list[str] = config.get("include_patterns", [])
+    exclude_patterns: list[str] = config.get("exclude_patterns", [])
 
-def collect_files() -> list[Path]:
-    files: list[Path] = []
-    for rule in SCAN_RULES:
-        for base_dir in rule["dirs"]:
-            base_path = Path(base_dir)
-            if not base_path.exists():
-                continue
-            for root, dirs, filenames in os.walk(base_path):
-                dirs[:] = [d for d in dirs if not should_skip_dir(d)]
-                for filename in filenames:
-                    if filename.endswith(rule["ext"]):
-                        files.append(Path(root) / filename)
-    for path in SCAN_FILES:
-        if path.exists():
-            files.append(path)
-    return sorted(files)
+    if not include_patterns:
+        print("Warning: no include_patterns defined in .license-check.toml, nothing to check.")
+        return
 
+    included: set[Path] = set()
+    for pattern in include_patterns:
+        included.update(root.glob(pattern))
 
-def check_header(path: Path) -> bool:
-    return COPYRIGHT_MARKER in path.read_text(encoding="utf-8")
+    excluded: set[Path] = set()
+    for pattern in exclude_patterns:
+        excluded.update(root.glob(pattern))
 
+    files_to_check = sorted(p for p in included - excluded if p.is_file())
 
-def main() -> int:
-    files = collect_files()
-    missing = [str(path) for path in files if not check_header(path)]
+    missing: list[Path] = []
+    for file_path in files_to_check:
+        try:
+            content = file_path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue
+        if marker not in content:
+            missing.append(file_path.relative_to(root))
+
     if missing:
-        print("Files missing license header:")
-        for path in missing:
-            print(f"  {path}")
-        print(f"\n{len(missing)} file(s) missing the required license header.")
-        return 1
-    print(f"All {len(files)} file(s) have the required license header.")
-    return 0
+        print(f"The following {len(missing)} file(s) are missing the license header ({marker!r}):")
+        for f in sorted(missing):
+            print(f"  {f}")
+        sys.exit(1)
+
+    print(f"✓ All {len(files_to_check)} checked files have the required license header.")
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()
