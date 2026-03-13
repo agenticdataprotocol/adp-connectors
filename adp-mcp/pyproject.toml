@@ -1,0 +1,73 @@
+[project]
+name = "adp-mcp"
+version = "0.1.0.dev0"
+description = "ADP MCP Bridge: Expose ADP Hypervisor resources as MCP tools"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+authors = [{ name = "ADP Team" }]
+keywords = ["adp", "agentic", "data", "protocol", "mcp", "ai", "agent"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+
+dependencies = [
+    "mcp[cli]>=1.0,<2.0",
+    # TODO: update to >=0.1.0 once adp-sdk is officially released on PyPI
+    "adp-sdk>=0.1.0.dev0",
+    # TODO: update to >=0.1.0 once adp-hypervisor is officially released on PyPI
+    "adp-hypervisor>=0.1.0.dev0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "black>=24.0,<25.0",
+    "ruff>=0.2,<1.0",
+    "mypy>=1.8,<2.0",
+]
+
+[project.scripts]
+adp-mcp = "adp_mcp.__main__:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/adp_mcp"]
+
+[tool.black]
+line-length = 100
+target-version = ["py311", "py312", "py313"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+]
+ignore = []
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_return_any = true
+warn_unused_ignores = true
+disallow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = ["mcp.*", "adp_sdk", "adp_sdk.*"]
+ignore_missing_imports = true
