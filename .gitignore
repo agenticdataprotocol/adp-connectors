@@ -18,7 +18,6 @@ uv.lock
 
 # Docker demo log output
 adp-mcp/docker/logs/*
-!adp-mcp/docker/logs/.gitkeep
 adp-mcp/docker/localfs/notes/*
 !adp-mcp/docker/localfs/notes/.gitkeep
 adp-mcp/docker/localfs/reports/*
