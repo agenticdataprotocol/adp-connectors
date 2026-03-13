@@ -35,7 +35,13 @@ docker compose up -d
 Point your MCP client at the running container — see
 [MCP Client Configuration](#mcp-client-configuration) below.
 
-### 3. Stop the stack
+### 3. Try it out
+
+With the stack running and your MCP client connected, follow the
+[Customer Churn Investigation](examples/customer-churn-investigation.md) scenario
+for a step-by-step walkthrough across all four backends.
+
+### 4. Stop the stack
 
 ```bash
 docker compose down
@@ -118,8 +124,10 @@ The stack is seeded with the following resources:
 | `demo:products` | PostgreSQL | LOOKUP, QUERY | Product catalog (6 rows, in-stock filter applied) |
 | `demo:orders` | PostgreSQL | LOOKUP, QUERY | Customer orders (10 rows) |
 | `demo:items` | pgvector | LOOKUP, QUERY | Product embeddings for similarity search (10 rows, 3-D cosine) |
-| `demo:user_profiles` | MongoDB | LOOKUP, QUERY | Application user profiles (5 documents) |
+| `demo:customer_profiles` | MongoDB | LOOKUP, QUERY | Customer CRM profiles (5 documents, churn risk / lifetime value) |
 | `demo:invoices` | Local filesystem | LOOKUP, QUERY, INGEST, REVISE | Invoice files organised by fulfilment status (6 files) |
+| `demo:notes` | Local filesystem | LOOKUP, QUERY, INGEST, REVISE | Analyst notes — default role can read and write |
+| `demo:reports` | Local filesystem | LOOKUP, QUERY, INGEST, REVISE | Business reports — write access restricted to admin role |
 
 ## Demo Users
 

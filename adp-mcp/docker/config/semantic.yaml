@@ -107,32 +107,35 @@ resources:
               dimensions: 3
               distance_function: "COSINE"
 
-  - resourceId: "demo:user_profiles"
+  - resourceId: "demo:customer_profiles"
     intentClasses: ["LOOKUP", "QUERY"]
     version: 1
-    description: "Application user profiles stored in MongoDB"
+    description: "Customer CRM profiles stored in MongoDB"
     backendId: "mongo_demo"
     sourceDefinition:
-      source: "users"
+      source: "customer_profiles"
       fields:
-        - fieldId: "user_id"
-          type: "STRING"
-          description: "Unique user identifier"
-        - fieldId: "name"
-          type: "STRING"
-          description: "Full name"
+        - fieldId: "customer_id"
+          type: "INTEGER"
+          description: "Customer identifier matching the PostgreSQL customers table"
         - fieldId: "email"
           type: "STRING"
-          description: "Email address"
+          description: "Customer email address (unique lookup key)"
+        - fieldId: "name"
+          type: "STRING"
+          description: "Customer full name"
         - fieldId: "segment"
           type: "STRING"
-          description: "Customer segment"
-        - fieldId: "status"
+          description: "Customer segment (premium, standard, enterprise)"
+        - fieldId: "lifetime_value"
+          type: "FLOAT"
+          description: "Total value of all non-cancelled orders"
+        - fieldId: "churn_risk"
           type: "STRING"
-          description: "Account lifecycle status"
-        - fieldId: "login_count"
+          description: "Churn risk level (low, medium, high)"
+        - fieldId: "last_purchase_days_ago"
           type: "INTEGER"
-          description: "Number of successful logins"
+          description: "Days since the customer's most recent order"
 
   - resourceId: "demo:invoices"
     intentClasses: ["LOOKUP", "QUERY", "INGEST", "REVISE"]
@@ -141,3 +144,19 @@ resources:
     backendId: "localfs_demo"
     sourceDefinition:
       source: "invoices"
+
+  - resourceId: "demo:notes"
+    intentClasses: ["LOOKUP", "QUERY", "INGEST", "REVISE"]
+    version: 1
+    description: "Analyst notes and customer outreach records stored on the local filesystem"
+    backendId: "localfs_demo"
+    sourceDefinition:
+      source: "notes"
+
+  - resourceId: "demo:reports"
+    intentClasses: ["LOOKUP", "QUERY", "INGEST", "REVISE"]
+    version: 1
+    description: "Business reports stored on the local filesystem — write access restricted to admin role"
+    backendId: "localfs_demo"
+    sourceDefinition:
+      source: "reports"

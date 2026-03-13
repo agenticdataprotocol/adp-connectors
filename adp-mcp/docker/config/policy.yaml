@@ -5,6 +5,20 @@ policies:
     resourceSelector: "*"
     roles:
       - role: "default"
+        allowedIntents: ["LOOKUP", "QUERY"]
+
+  - type: "ACCESS"
+    resourceSelector: "demo:notes"
+    roles:
+      - role: "default"
+        allowedIntents: ["LOOKUP", "QUERY", "INGEST", "REVISE"]
+
+  - type: "ACCESS"
+    resourceSelector: "demo:reports"
+    roles:
+      - role: "default"
+        allowedIntents: ["LOOKUP", "QUERY"]
+      - role: "admin"
         allowedIntents: ["*"]
 
   - type: "OPERATIONAL"

@@ -1,13 +1,14 @@
 db = db.getSiblingDB("adp_mongo_demo");
 
-db.users.createIndex({ user_id: 1 }, { unique: true });
-db.users.createIndex({ segment: 1, status: 1, login_count: -1 });
+db.customer_profiles.createIndex({ customer_id: 1 }, { unique: true });
+db.customer_profiles.createIndex({ email: 1 }, { unique: true });
+db.customer_profiles.createIndex({ churn_risk: 1 });
 
-db.users.deleteMany({});
-db.users.insertMany([
-  { _id: "usr_001", user_id: "usr_001", name: "Alicia Chen", email: "alicia.chen@example.com", segment: "enterprise", status: "active", login_count: 42 },
-  { _id: "usr_002", user_id: "usr_002", name: "Bruno Diaz", email: "bruno.diaz@example.com", segment: "smb", status: "inactive", login_count: 5 },
-  { _id: "usr_003", user_id: "usr_003", name: "Nia Patel", email: "nia.patel@example.com", segment: "enterprise", status: "active", login_count: 27 },
-  { _id: "usr_004", user_id: "usr_004", name: "Maya Singh", email: "maya.singh@example.com", segment: "startup", status: "active", login_count: 18 },
-  { _id: "usr_005", user_id: "usr_005", name: "Jordan Lee", email: "jordan.lee@example.com", segment: "enterprise", status: "trial", login_count: 9 },
+db.customer_profiles.deleteMany({});
+db.customer_profiles.insertMany([
+  { customer_id: 1, email: "alice@example.com",  name: "Alice Johnson", segment: "premium",    lifetime_value: 119.98, churn_risk: "low",    last_purchase_days_ago: 28 },
+  { customer_id: 2, email: "bob@example.com",    name: "Bob Smith",     segment: "standard",   lifetime_value: 107.97, churn_risk: "medium", last_purchase_days_ago: 45 },
+  { customer_id: 3, email: "carol@example.com",  name: "Carol White",   segment: "premium",   lifetime_value:  92.49, churn_risk: "high",   last_purchase_days_ago: 52 },
+  { customer_id: 4, email: "david@example.com",  name: "David Brown",   segment: "standard",   lifetime_value:  89.99, churn_risk: "high",   last_purchase_days_ago: 35 },
+  { customer_id: 5, email: "eva@example.com",    name: "Eva Martinez",  segment: "enterprise", lifetime_value: 104.98, churn_risk: "low",    last_purchase_days_ago: 20 },
 ]);
