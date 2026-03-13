@@ -1,0 +1,80 @@
+# Copyright 2026 Datastrato, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: Publish adp-mcp to PyPI
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Optional pre-release version to publish (e.g. 0.1.0.dev1 or 0.1.0.rc1). Must end with .devN or .rcN. Leave blank to publish the version from pyproject.toml as a production release."
+        required: false
+        type: string
+      ref:
+        description: "Branch or tag to publish from (e.g. main, v0.1.0). Defaults to the branch selected above."
+        required: false
+        type: string
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/adp-mcp/
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.ref || github.ref }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Resolve version
+        working-directory: adp-mcp
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          if [ -n "${VERSION}" ]; then
+            if [[ ! "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.(dev|rc)[0-9]+$ ]]; then
+              echo "Error: version must follow the format X.Y.Z.devN or X.Y.Z.rcN (e.g. 0.1.0.dev1, 0.1.0.rc1)"
+              exit 1
+            fi
+            echo "Patching pyproject.toml with pre-release version: ${VERSION}"
+            uv version "${VERSION}"
+          else
+            VERSION=$(uv run python -c "import tomllib; f=open('pyproject.toml','rb'); d=tomllib.load(f); print(d['project']['version'])")
+            echo "Publishing production version from pyproject.toml: ${VERSION}"
+          fi
+
+      - name: Build
+        working-directory: adp-mcp
+        run: uv build --no-sources
+
+      - name: Smoke test
+        working-directory: adp-mcp
+        run: uv run --isolated --no-project --with "$(ls dist/*.whl)" -- python -c "import adp_mcp; print('adp-mcp imported successfully')"
+
+      - name: Publish
+        working-directory: adp-mcp
+        run: uv publish
