@@ -1,0 +1,16 @@
+INVOICE #002
+------------
+Date:       2025-12-03
+Status:     DELIVERED
+
+Bill To:
+  Alice Johnson
+  alice@example.com
+  Seattle, WA
+
+Items:
+  1 x Mechanical Keyboard       $89.99
+                                -------
+  Total                         $89.99
+
+Thank you for shopping with us!

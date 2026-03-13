@@ -1,0 +1,35 @@
+version: "1.0.0"
+
+policies:
+  - type: "ACCESS"
+    resourceSelector: "*"
+    roles:
+      - role: "default"
+        allowedIntents: ["LOOKUP", "QUERY"]
+
+  - type: "ACCESS"
+    resourceSelector: "demo:notes"
+    roles:
+      - role: "default"
+        allowedIntents: ["LOOKUP", "QUERY", "INGEST", "REVISE"]
+
+  - type: "ACCESS"
+    resourceSelector: "demo:reports"
+    roles:
+      - role: "default"
+        allowedIntents: ["LOOKUP", "QUERY"]
+      - role: "admin"
+        allowedIntents: ["*"]
+
+  - type: "OPERATIONAL"
+    resourceId: "demo:orders"
+    enforceLimit: 1000
+    defaultOrderBy:
+      fieldId: "ordered_at"
+      direction: "DESC"
+
+  - type: "MANDATORY_FILTER"
+    resourceId: "demo:products"
+    fieldId: "in_stock"
+    op: "EQ"
+    value: true

@@ -1,0 +1,86 @@
+# Copyright 2026 Datastrato, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+services:
+  mcp-runtime:
+    build:
+      context: .
+    container_name: adp-mcp-runtime
+    depends_on:
+      postgres:
+        condition: service_healthy
+      pgvector:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    volumes:
+      - ./config:/opt/adp/config:ro
+      - ./localfs:/opt/adp/localfs
+      - ./logs:/opt/adp/logs
+    environment:
+      - ADP_USERNAME=demo
+      - ADP_PASSWORD=demo
+      - PG_PASSWORD=adp_pass
+      - MONGO_PASSWORD=adp_pass
+
+  postgres:
+    image: postgres:15
+    container_name: adp-postgres
+    environment:
+      POSTGRES_USER: adp_user
+      POSTGRES_PASSWORD: adp_pass
+      POSTGRES_DB: adp_demo
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./seed/postgres:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U adp_user -d adp_demo"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  pgvector:
+    image: pgvector/pgvector:pg15
+    container_name: adp-pgvector
+    environment:
+      POSTGRES_USER: adp_user
+      POSTGRES_PASSWORD: adp_pass
+      POSTGRES_DB: adp_vector_demo
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./seed/pgvector:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U adp_user -d adp_vector_demo"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  mongodb:
+    image: mongo:7
+    container_name: adp-mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: adp_user
+      MONGO_INITDB_ROOT_PASSWORD: adp_pass
+      MONGO_INITDB_DATABASE: adp_mongo_demo
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./seed/mongodb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "mongosh", "--username", "adp_user", "--password", "adp_pass", "--authenticationDatabase", "admin", "--quiet", "--eval", "db.adminCommand({ ping: 1 })"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
