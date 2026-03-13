@@ -7,9 +7,8 @@ from contextlib import asynccontextmanager
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from mcp.shared.memory import create_connected_server_and_client_session
-
 from adp_sdk.shared import ADPError
+from mcp.shared.memory import create_connected_server_and_client_session
 
 from adp_mcp.server import create_server
 
