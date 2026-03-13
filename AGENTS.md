@@ -30,9 +30,15 @@ sub-project directory.
 - Use `# ===...===` separators between test classes. Place helpers (stubs, factories) at file top with `_` prefix.
 - Run tests: `python -m unittest discover -s tests -v` from within the sub-project directory.
 
+## License Compliance
+
+- Keep `LICENSE` and `NOTICE` at the repository root.
+- Add Apache 2.0 license headers to covered Python source files, Python test files, repository Python scripts, GitHub Actions workflow YAML files, and `CONTRIBUTING.md`.
+- Run `python scripts/check-license.py` from the repository root before submitting changes that touch covered files.
+
 ## Git Conventions
 
 - Commit messages: `<type>: <subject>` (e.g. `feat:`, `fix:`, `chore:`, `docs:`).
 - Issue templates: `.github/ISSUE_TEMPLATE/` (bug-report, feature-request, improvement, epic, subtask).
 - PR template: `.github/PULL_REQUEST_TEMPLATE.md`.
-- CI: `.github/workflows/ci.yml` runs lint (Ruff, Black, mypy) and tests (Python 3.11–3.13) on every push/PR to `main`.
+- CI: `.github/workflows/ci.yml` runs license checks, lint (Ruff, Black, mypy), and tests (Python 3.11–3.13) on every push/PR to `main`.
