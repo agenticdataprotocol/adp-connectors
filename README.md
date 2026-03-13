@@ -7,7 +7,7 @@ A monorepo for ADP (Agentic Data Protocol) connector sub-projects.
 | Directory | Package | Description |
 |-----------|---------|-------------|
 | [`adp-mcp/`](./adp-mcp/) | `adp-mcp` | MCP server bridging LLM agents to ADP Hypervisor |
-| [`adp-skills/`](./adp-skills/) | — | Agent skills for ADP integration *(coming soon)* |
+| [`adp-skills/`](./adp-skills/) | — | Agent skills for ADP integration |
 
 ## Docker Quickstart
 
