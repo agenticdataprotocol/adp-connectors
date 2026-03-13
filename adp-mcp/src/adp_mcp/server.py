@@ -20,11 +20,9 @@ from adp_sdk.types.requests import DiscoverFilter
 from mcp.server.fastmcp import Context, FastMCP
 from mcp.shared.exceptions import McpError
 from mcp.types import INTERNAL_ERROR, INVALID_PARAMS, ErrorData
-from pydantic import Field, TypeAdapter, ValidationError
+from pydantic import Field
 
 logger = logging.getLogger(__name__)
-
-_INTENT_ADAPTER: TypeAdapter[Intent] = TypeAdapter(Intent)
 
 _ENV_VAR_USERNAME = "ADP_USERNAME"
 _ENV_VAR_PASSWORD = "ADP_PASSWORD"
@@ -68,6 +66,9 @@ def create_server(config_path: str) -> FastMCP:
         Yields:
             A dict containing the initialized ClientSession.
         """
+        # stdio_client is an async context manager: it opens the subprocess transport on
+        # enter and closes it (terminating the hypervisor process) on exit, so no explicit
+        # close call is needed here.
         async with stdio_client(
             sys.executable,
             args=hypervisor_args,
@@ -196,11 +197,10 @@ def create_server(config_path: str) -> FastMCP:
     @mcp.tool()
     async def adp_validate(
         intent: Annotated[
-            dict[str, object],
+            Intent,
             Field(
                 description=(
-                    "Full intent IR object. Must include 'intentClass' "
-                    "(LOOKUP/QUERY/INGEST/REVISE) and 'resourceId'. "
+                    "The intent IR object to validate. "
                     "Build from the usage contract returned by adp_describe."
                 )
             ),
@@ -216,11 +216,7 @@ def create_server(config_path: str) -> FastMCP:
         session: ClientSession = ctx.request_context.lifespan_context["session"]
         logger.debug("adp_validate called: intent=%r", intent)
         try:
-            intent_obj = _INTENT_ADAPTER.validate_python(intent)
-            result = await session.validate(intent=intent_obj)
-        except ValidationError as e:
-            logger.error("adp_validate failed (validation): %s", e, exc_info=True)
-            raise McpError(ErrorData(code=INVALID_PARAMS, message=str(e))) from e
+            result = await session.validate(intent=intent)
         except ADPError as e:
             logger.error("adp_validate failed: %s", e, exc_info=True)
             raise McpError(ErrorData(code=INTERNAL_ERROR, message=str(e))) from e
@@ -231,11 +227,10 @@ def create_server(config_path: str) -> FastMCP:
     @mcp.tool()
     async def adp_execute(
         intent: Annotated[
-            dict[str, object],
+            Intent,
             Field(
                 description=(
-                    "Full intent IR object. Must include 'intentClass' "
-                    "(LOOKUP/QUERY/INGEST/REVISE) and 'resourceId'. "
+                    "The intent IR object to execute. "
                     "Build from the usage contract returned by adp_describe."
                 )
             ),
@@ -256,11 +251,7 @@ def create_server(config_path: str) -> FastMCP:
         cursor = cursor or None
         logger.debug("adp_execute called: intent=%r, cursor=%r", intent, cursor)
         try:
-            intent_obj = _INTENT_ADAPTER.validate_python(intent)
-            result = await session.execute(intent=intent_obj, cursor=cursor)
-        except ValidationError as e:
-            logger.error("adp_execute failed (validation): %s", e, exc_info=True)
-            raise McpError(ErrorData(code=INVALID_PARAMS, message=str(e))) from e
+            result = await session.execute(intent=intent, cursor=cursor)
         except ADPError as e:
             logger.error("adp_execute failed: %s", e, exc_info=True)
             raise McpError(ErrorData(code=INTERNAL_ERROR, message=str(e))) from e
