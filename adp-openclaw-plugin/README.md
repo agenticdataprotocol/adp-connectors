@@ -28,7 +28,7 @@ JSON-RPC 2.0 on stdio (NDJSON framing):
 ## Prerequisites
 
 - Node.js 22+
-- Python 3.10+ with the `adp-hypervisor` package installed
+- Python 3.11+ with the `adp-hypervisor` package installed
 - OpenClaw gateway running
 
 ## Installation
@@ -53,6 +53,77 @@ cp -r adp-openclaw-plugin ~/.openclaw/extensions/adp-openclaw-plugin
 cd ~/.openclaw/extensions/adp-openclaw-plugin
 npm install --omit=dev
 ```
+
+## Deployment (GCP VM Quick Start)
+
+End-to-end steps for deploying the plugin on a GCP VM where OpenClaw gateway is
+managed by PM2.
+
+### 1. Install adp-hypervisor Python package
+
+The `adp-hypervisor` package is published on [PyPI](https://pypi.org/project/adp-hypervisor/)
+(currently as a dev prerelease). It requires Python 3.11+.
+
+```bash
+# Install in existing virtualenv (can share with litellm)
+source litellm_env/bin/activate
+
+# Install dev prerelease from PyPI (--pre is required for dev versions)
+pip install --pre adp-hypervisor
+
+# Verify
+python -m adp_hypervisor --help
+```
+
+### 2. Install the plugin
+
+```bash
+# Install plugin dependencies
+cd /home/liminghuang/adp-demo/adp-connectors/adp-openclaw-plugin
+npm install
+
+# Set required config BEFORE install (order matters!)
+node /home/liminghuang/adp-demo/openclaw/dist/index.js config set plugins.entries.adp-openclaw-plugin.config.configPath /home/liminghuang/adp-demo/adp-connectors/adp-openclaw-plugin/manifests
+
+# Set Python path to virtualenv (important for PM2-managed processes)
+node /home/liminghuang/adp-demo/openclaw/dist/index.js config set plugins.entries.adp-openclaw-plugin.config.command /home/liminghuang/adp-demo/litellm_env/bin/python
+
+# Optional: set username for RBAC
+node /home/liminghuang/adp-demo/openclaw/dist/index.js config set plugins.entries.adp-openclaw-plugin.config.username release_manager
+
+# Link the plugin
+node /home/liminghuang/adp-demo/openclaw/dist/index.js plugins install /home/liminghuang/adp-demo/adp-connectors/adp-openclaw-plugin --link
+```
+
+### 3. Deploy Dora workspace addendum
+
+```bash
+# Copy ADP integration instructions to Dora's workspace
+cat docs/AGENTS-adp-addendum.md >> ~/.openclaw/workspace-dora/AGENTS.md
+```
+
+### 4. Restart and verify
+
+```bash
+pm2 restart openclaw-gateway
+pm2 logs openclaw-gateway --lines 30
+# Should see:
+#   adp-bridge: registering (configPath=...)
+#   adp-bridge: registered 4 tools (discover, describe, validate, execute)
+#   adp-bridge: Hypervisor connected (...)
+```
+
+### Important notes
+
+- **Config before install** — Config must be set _before_ `plugins install --link`
+  because install validates the plugin's `configSchema` at registration time.
+- **PM2 and virtualenvs** — PM2-managed processes don't inherit shell activation,
+  so `command` must be set to the absolute path of the virtualenv Python binary
+  (e.g., `/home/liminghuang/adp-demo/litellm_env/bin/python`).
+- **`npm install` is required** — even though the plugin has zero runtime
+  dependencies (TypeBox was removed for CJS/ESM compatibility with OpenClaw's
+  jiti loader), `npm install` is still needed to create the `node_modules`
+  structure.
 
 ## Configuration
 
@@ -89,11 +160,15 @@ openclaw config set plugins.entries.adp-openclaw-plugin.config.logLevel INFO
 | Field | Required | Default | Description |
 |-------|----------|---------|-------------|
 | `configPath` | Yes | — | Path to directory containing ADP manifest YAML files |
-| `command` | No | `python` | Python executable to use |
+| `command` | No | `python` | Python executable to use (set to absolute path if using a virtualenv) |
 | `args` | No | `["-m", "adp_hypervisor"]` | Arguments for the Hypervisor command |
 | `username` | No | — | ADP username for RBAC (sets `ADP_USERNAME` env var) |
 | `logLevel` | No | — | Hypervisor log level (`DEBUG`, `INFO`, `WARNING`, `ERROR`) |
 | `env` | No | — | Additional environment variables for the subprocess |
+
+> **Note:** When using a Python virtualenv, set `command` to the full path of the
+> virtualenv Python binary (e.g., `/home/user/venv/bin/python`) since the gateway
+> process does not inherit shell activation.
 
 ## Verify Installation
 
@@ -109,6 +184,67 @@ pm2 restart openclaw-gateway
 pm2 logs openclaw-gateway --lines 20
 # Should see: adp-bridge: Hypervisor connected (...)
 ```
+
+## Troubleshooting
+
+**`Hypervisor subprocess terminated` immediately after spawn**
+
+The Hypervisor subprocess exited right away. Common causes:
+
+1. **`adp-hypervisor` not installed** — verify with `python -m adp_hypervisor --help`
+2. **Wrong Python path** — if using a virtualenv, set `command` to the absolute path:
+   ```bash
+   openclaw config set plugins.entries.adp-openclaw-plugin.config.command /path/to/venv/bin/python
+   ```
+3. **Invalid manifest path** — ensure `configPath` points to a directory containing
+   `physical.yaml`, `semantic.yaml`, and `policy.yaml`
+
+**`plugin not found: adp-openclaw-plugin`**
+
+The plugin was not discovered. Ensure one of:
+- `plugins install --link` was run to register the plugin path
+- The plugin directory is placed under `~/.openclaw/extensions/`
+
+**`Cannot find module '@sinclair/typebox'`**
+
+Run `npm install` in the plugin directory. If using `--link`, dependencies must be
+installed at the source path before the gateway starts.
+
+**`Port 18789 is already in use` after PM2 restart**
+
+PM2's `restart` command sometimes starts the new process before the old one fully
+exits, causing a port conflict. Use `delete` + `start` instead:
+
+```bash
+pm2 delete openclaw-gateway
+pm2 start ecosystem.config.js --only openclaw-gateway
+```
+
+**Checking Hypervisor logs**
+
+The plugin pipes Hypervisor stderr to the OpenClaw gateway log. Check logs in these
+locations:
+
+```bash
+# PM2 logs (combined gateway + plugin output)
+pm2 logs openclaw-gateway --lines 50
+
+# OpenClaw gateway log file
+tail -f /tmp/openclaw/openclaw-$(date +%Y-%m-%d).log
+
+# Hypervisor's own log file
+# With logging_conf.yaml: uses the configured absolute path
+cat /home/liminghuang/adp-demo/logs/hypervisor.log
+
+# Without logging_conf.yaml: defaults to ./hypervisor-logs/hypervisor.log
+# relative to the process working directory, which varies depending on
+# how the gateway was started (e.g., PM2 cwd or ~/.openclaw/workspace/)
+find /home/liminghuang -name "hypervisor.log" 2>/dev/null
+```
+
+> **Tip:** Add a `logging_conf.yaml` to the manifests directory with an absolute
+> `filename` path to avoid log files scattering across multiple working directories.
+> See `manifests/logging_conf.yaml` for an example.
 
 ## Development
 

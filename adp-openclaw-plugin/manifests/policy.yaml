@@ -1,47 +1,57 @@
 # ADP Policy Manifest - RBAC access control
 # Deploy path: ~/adp-demo/adp-release-manifest/policy.yaml
 
+version: "1.0.0"
+
 policies:
-  # Release Manager: full access
-  - type: ACCESS
-    resource: "release:*"
-    intent_classes: [LOOKUP, QUERY, INGEST, REVISE]
-    roles: [release_manager]
+  # Release Manager: full access to all release resources
+  - type: "ACCESS"
+    resourceSelector: "release:*"
+    roles:
+      - role: "release_manager"
+        allowedIntents: ["LOOKUP", "QUERY", "INGEST", "REVISE"]
 
   # PMC Member: read all, vote, update checklist
-  - type: ACCESS
-    resource: "release:releases"
-    intent_classes: [LOOKUP, QUERY]
-    roles: [pmc]
+  - type: "ACCESS"
+    resourceSelector: "release:releases"
+    roles:
+      - role: "pmc"
+        allowedIntents: ["LOOKUP", "QUERY"]
 
-  - type: ACCESS
-    resource: "release:checklist"
-    intent_classes: [LOOKUP, QUERY, REVISE]
-    roles: [pmc]
+  - type: "ACCESS"
+    resourceSelector: "release:checklist"
+    roles:
+      - role: "pmc"
+        allowedIntents: ["LOOKUP", "QUERY", "REVISE"]
 
-  - type: ACCESS
-    resource: "release:candidates"
-    intent_classes: [LOOKUP, QUERY]
-    roles: [pmc]
+  - type: "ACCESS"
+    resourceSelector: "release:candidates"
+    roles:
+      - role: "pmc"
+        allowedIntents: ["LOOKUP", "QUERY"]
 
-  - type: ACCESS
-    resource: "release:votes"
-    intent_classes: [LOOKUP, QUERY, INGEST]
-    roles: [pmc]
+  - type: "ACCESS"
+    resourceSelector: "release:votes"
+    roles:
+      - role: "pmc"
+        allowedIntents: ["LOOKUP", "QUERY", "INGEST"]
 
   # Committer: read-only + checklist completion
-  - type: ACCESS
-    resource: "release:*"
-    intent_classes: [LOOKUP, QUERY]
-    roles: [committer]
+  - type: "ACCESS"
+    resourceSelector: "release:*"
+    roles:
+      - role: "committer"
+        allowedIntents: ["LOOKUP", "QUERY"]
 
-  - type: ACCESS
-    resource: "release:checklist"
-    intent_classes: [REVISE]
-    roles: [committer]
+  - type: "ACCESS"
+    resourceSelector: "release:checklist"
+    roles:
+      - role: "committer"
+        allowedIntents: ["REVISE"]
 
   # Viewer: read-only
-  - type: ACCESS
-    resource: "release:*"
-    intent_classes: [LOOKUP, QUERY]
-    roles: [viewer]
+  - type: "ACCESS"
+    resourceSelector: "release:*"
+    roles:
+      - role: "viewer"
+        allowedIntents: ["LOOKUP", "QUERY"]

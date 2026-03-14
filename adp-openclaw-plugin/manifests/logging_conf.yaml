@@ -1,0 +1,27 @@
+# ADP Hypervisor logging configuration
+# Follows Python logging.config.dictConfig format
+# Place in the same directory as your manifest YAML files
+
+version: 1
+
+formatters:
+  standard:
+    format: "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+    datefmt: "%Y-%m-%dT%H:%M:%S"
+
+handlers:
+  console:
+    class: logging.StreamHandler
+    formatter: standard
+    stream: ext://sys.stderr
+  file:
+    class: logging.handlers.RotatingFileHandler
+    formatter: standard
+    filename: /home/liminghuang/adp-demo/logs/hypervisor.log
+    maxBytes: 10485760
+    backupCount: 5
+    encoding: utf8
+
+root:
+  level: INFO
+  handlers: [console, file]

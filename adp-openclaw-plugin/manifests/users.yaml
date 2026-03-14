@@ -1,14 +1,11 @@
 # ADP Users Manifest - User-to-role mapping
 # Deploy path: ~/adp-demo/adp-release-manifest/users.yaml
 
+default_role: "default"
+
 users:
-  minghuang:
-    role: release_manager
-  admin:
-    role: release_manager
-  jerry:
-    role: pmc
-  alice:
-    role: committer
-  bob:
-    role: viewer
+  minghuang: "release_manager"
+  admin: "release_manager"
+  jerry: "pmc"
+  alice: "committer"
+  bob: "viewer"
