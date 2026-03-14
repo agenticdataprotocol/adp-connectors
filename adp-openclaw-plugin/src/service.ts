@@ -18,6 +18,10 @@
  * On gateway start, spawns the Hypervisor and runs the initialize handshake.
  * On gateway stop, gracefully shuts down the subprocess.
  * Exposes a `getClient()` getter for tool implementations.
+ *
+ * The HypervisorClient is stored as a globalThis singleton so that
+ * multiple plugin loads (e.g., from different agent workspaces) share
+ * the same connected client instance.
  */
 
 import { mkdirSync } from "node:fs";
@@ -28,15 +32,24 @@ import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
 import type { AdpPluginConfig } from "./types.js";
 import { HypervisorClient } from "./client.js";
 
+const GLOBAL_CLIENT_KEY = Symbol.for("adp-hypervisor-client");
+
+function getSharedClient(): HypervisorClient | null {
+  return (globalThis as Record<symbol, HypervisorClient | null>)[GLOBAL_CLIENT_KEY] ?? null;
+}
+
+function setSharedClient(value: HypervisorClient | null): void {
+  (globalThis as Record<symbol, HypervisorClient | null>)[GLOBAL_CLIENT_KEY] = value;
+}
+
 interface ServiceResult {
   /** Get the active HypervisorClient. Throws if not connected. */
   getClient: () => HypervisorClient;
 }
 
 export function registerAdpService(api: OpenClawPluginApi, config: AdpPluginConfig): ServiceResult {
-  let client: HypervisorClient | null = null;
-
   const getClient = (): HypervisorClient => {
+    const client = getSharedClient();
     if (!client || !client.connected) {
       throw new Error("adp-bridge: Hypervisor not connected. Is the service running?");
     }
@@ -46,8 +59,15 @@ export function registerAdpService(api: OpenClawPluginApi, config: AdpPluginConf
   api.registerService({
     id: "adp-bridge",
     start: async () => {
+      // Reuse existing connection if another workspace already started the service.
+      const existing = getSharedClient();
+      if (existing?.connected) {
+        api.logger.info("adp-bridge: reusing existing Hypervisor connection");
+        return;
+      }
+
       try {
-        client = new HypervisorClient(api.logger);
+        const client = new HypervisorClient(api.logger);
 
         const command = config.command ?? "python";
         const baseArgs = config.args ?? ["-m", "adp_hypervisor"];
@@ -62,13 +82,7 @@ export function registerAdpService(api: OpenClawPluginApi, config: AdpPluginConf
           env.ADP_USERNAME = config.username;
         }
 
-        // Set CWD to the parent of configPath so relative manifest paths
-        // (e.g. `./data`, `./logs/`) resolve alongside the manifests directory.
         const cwd = dirname(config.configPath);
-
-        // LocalFSBackend.connect() requires the root path to exist upfront
-        // (auto_create_source only creates source sub-dirs, not the root).
-        // Ensure `./data` exists so the Hypervisor doesn't crash on first start.
         mkdirSync(resolve(cwd, "data"), { recursive: true });
 
         client.spawn(command, args, Object.keys(env).length > 0 ? env : undefined, cwd);
@@ -78,24 +92,26 @@ export function registerAdpService(api: OpenClawPluginApi, config: AdpPluginConf
         }
 
         const result = await client.initialize();
+        setSharedClient(client);
         api.logger.info(
           `adp-bridge: Hypervisor connected (server=${result.serverInfo.name} v${result.serverInfo.version}, protocol=${result.protocolVersion})`,
         );
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         api.logger.error(`adp-bridge: failed to start Hypervisor: ${message}`);
-        // Clean up on failure
+        const client = getSharedClient();
         if (client) {
           await client.close().catch(() => {});
-          client = null;
+          setSharedClient(null);
         }
       }
     },
 
     stop: async () => {
+      const client = getSharedClient();
       if (client) {
         await client.close();
-        client = null;
+        setSharedClient(null);
         api.logger.info("adp-bridge: Hypervisor stopped");
       }
     },
