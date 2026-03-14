@@ -1,0 +1,6 @@
+username,role,display_name
+minghuang,release_manager,Ming Huang
+admin,release_manager,Admin
+jerry,pmc,Jerry
+alice,committer,Alice
+bob,viewer,Bob

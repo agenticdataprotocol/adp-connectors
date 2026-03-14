@@ -1,5 +1,12 @@
 # ADP Semantic Manifest - Release domain resource definitions
 # Deploy path: ~/adp-demo/adp-release-manifest/semantic.yaml
+#
+# Backend is BLOB_STORAGE (local filesystem).  Each resource maps to a
+# subdirectory under `data/<source>/`.
+#
+# Convention-based metadata fields (path, size, last_modified, created_at,
+# content_type, is_directory, content, content_encoding) are provided
+# automatically by the blob storage backend — do NOT list them here.
 
 version: "1.0.0"
 
@@ -7,148 +14,39 @@ resources:
   - resourceId: "release:releases"
     intentClasses: ["LOOKUP", "QUERY", "INGEST", "REVISE"]
     version: 1
-    description: "Apache Gravitino release tracking records"
+    description: "Apache Gravitino release tracking records (JSON files)"
     backendId: "release_storage"
     sourceDefinition:
       source: "releases"
-      fields:
-        - fieldId: "version"
-          type: "STRING"
-          description: "Release version (e.g., 1.2.0)"
-        - fieldId: "status"
-          type: "STRING"
-          description: "Current release status"
-          samples: ["planning", "preparation", "building", "voting", "publishing", "completed", "aborted"]
-        - fieldId: "current_phase"
-          type: "INTEGER"
-          description: "Current phase number (1-5)"
-        - fieldId: "rc"
-          type: "STRING"
-          description: "Release candidate identifier (e.g., rc1)"
-        - fieldId: "branch"
-          type: "STRING"
-          description: "Release branch name"
-        - fieldId: "rm_name"
-          type: "STRING"
-          description: "Release manager full name"
-        - fieldId: "rm_asfid"
-          type: "STRING"
-          description: "Release manager ASF ID"
-        - fieldId: "previous_version"
-          type: "STRING"
-          description: "Previous release version for changelog"
-        - fieldId: "updated_at"
-          type: "TIMESTAMP"
-          description: "Last update timestamp (ISO 8601)"
 
   - resourceId: "release:checklist"
     intentClasses: ["LOOKUP", "QUERY", "INGEST", "REVISE"]
     version: 1
-    description: "Release checklist items with completion status"
+    description: "Release checklist items with completion status (JSON files)"
     backendId: "release_storage"
     sourceDefinition:
       source: "checklist"
-      fields:
-        - fieldId: "version"
-          type: "STRING"
-          description: "Associated release version"
-        - fieldId: "phase"
-          type: "INTEGER"
-          description: "Phase number (1-5)"
-        - fieldId: "item_id"
-          type: "STRING"
-          description: "Unique checklist item identifier"
-        - fieldId: "description"
-          type: "STRING"
-          description: "Checklist item description"
-        - fieldId: "status"
-          type: "STRING"
-          description: "Checklist item status"
-          samples: ["pending", "in_progress", "done", "skipped"]
-        - fieldId: "completed_by"
-          type: "STRING"
-          description: "ASF ID of person who completed this item"
-        - fieldId: "completed_at"
-          type: "TIMESTAMP"
-          description: "Completion timestamp"
 
   - resourceId: "release:candidates"
     intentClasses: ["LOOKUP", "QUERY", "INGEST", "REVISE"]
     version: 1
-    description: "Release candidate build records"
+    description: "Release candidate build records (JSON files)"
     backendId: "release_storage"
     sourceDefinition:
       source: "candidates"
-      fields:
-        - fieldId: "version"
-          type: "STRING"
-          description: "Release version"
-        - fieldId: "rc_number"
-          type: "STRING"
-          description: "RC identifier (rc1, rc2, ...)"
-        - fieldId: "status"
-          type: "STRING"
-          description: "RC build status"
-          samples: ["building", "built", "voting", "passed", "failed"]
-        - fieldId: "build_timestamp"
-          type: "TIMESTAMP"
-          description: "Build timestamp"
-        - fieldId: "artifacts_url"
-          type: "STRING"
-          description: "URL to RC artifacts on dist.apache.org"
-        - fieldId: "maven_repo_id"
-          type: "STRING"
-          description: "Maven staging repository ID"
-        - fieldId: "pypi_url"
-          type: "STRING"
-          description: "PyPI package URL"
 
   - resourceId: "release:votes"
     intentClasses: ["LOOKUP", "QUERY", "INGEST"]
     version: 1
-    description: "PMC vote tracking for release candidates"
+    description: "PMC vote tracking for release candidates (JSON files)"
     backendId: "release_storage"
     sourceDefinition:
       source: "votes"
-      fields:
-        - fieldId: "version"
-          type: "STRING"
-          description: "Release version"
-        - fieldId: "rc_number"
-          type: "STRING"
-          description: "Release candidate number"
-        - fieldId: "voter_name"
-          type: "STRING"
-          description: "Voter full name"
-        - fieldId: "voter_asfid"
-          type: "STRING"
-          description: "Voter ASF ID"
-        - fieldId: "vote"
-          type: "STRING"
-          description: "Vote value"
-          samples: ["+1", "0", "-1"]
-        - fieldId: "is_binding"
-          type: "BOOLEAN"
-          description: "Whether this is a binding PMC vote"
-        - fieldId: "comment"
-          type: "STRING"
-          description: "Vote comment"
-        - fieldId: "voted_at"
-          type: "TIMESTAMP"
-          description: "Vote timestamp"
 
-  - resourceId: "system:health"
-    intentClasses: ["LOOKUP"]
+  - resourceId: "system:people"
+    intentClasses: ["LOOKUP", "QUERY"]
     version: 1
-    description: "System health check endpoint for connectivity verification"
+    description: "Project member directory with roles (CSV)"
     backendId: "release_storage"
     sourceDefinition:
-      source: "health"
-      fields:
-        - fieldId: "status"
-          type: "STRING"
-          description: "System status"
-          samples: ["ok"]
-        - fieldId: "timestamp"
-          type: "TIMESTAMP"
-          description: "Health check timestamp"
+      source: "people"

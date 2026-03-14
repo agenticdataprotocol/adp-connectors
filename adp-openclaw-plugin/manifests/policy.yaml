@@ -1,72 +1,76 @@
 # ADP Policy Manifest - RBAC access control
 # Deploy path: ~/adp-demo/adp-release-manifest/policy.yaml
+#
+# NOTE: Exact-match selectors (e.g. "release:releases") take precedence over
+# wildcard selectors ("release:*"). Every role that needs access must appear
+# in the most-specific matching policy for that resource.
 
 version: "1.0.0"
 
 policies:
-  # Release Manager: full access to all release resources
-  - type: "ACCESS"
-    resourceSelector: "release:*"
-    roles:
-      - role: "release_manager"
-        allowedIntents: ["LOOKUP", "QUERY", "INGEST", "REVISE"]
-
-  # PMC Member: read all, vote, update checklist
+  # release:releases — RM full, PMC read, committer read, viewer read
   - type: "ACCESS"
     resourceSelector: "release:releases"
     roles:
+      - role: "release_manager"
+        allowedIntents: ["LOOKUP", "QUERY", "INGEST", "REVISE"]
       - role: "pmc"
         allowedIntents: ["LOOKUP", "QUERY"]
-
-  - type: "ACCESS"
-    resourceSelector: "release:checklist"
-    roles:
-      - role: "pmc"
-        allowedIntents: ["LOOKUP", "QUERY", "REVISE"]
-
-  - type: "ACCESS"
-    resourceSelector: "release:candidates"
-    roles:
-      - role: "pmc"
-        allowedIntents: ["LOOKUP", "QUERY"]
-
-  - type: "ACCESS"
-    resourceSelector: "release:votes"
-    roles:
-      - role: "pmc"
-        allowedIntents: ["LOOKUP", "QUERY", "INGEST"]
-
-  # Committer: read-only + checklist completion
-  - type: "ACCESS"
-    resourceSelector: "release:*"
-    roles:
       - role: "committer"
         allowedIntents: ["LOOKUP", "QUERY"]
-
-  - type: "ACCESS"
-    resourceSelector: "release:checklist"
-    roles:
-      - role: "committer"
-        allowedIntents: ["REVISE"]
-
-  # Viewer: read-only
-  - type: "ACCESS"
-    resourceSelector: "release:*"
-    roles:
       - role: "viewer"
         allowedIntents: ["LOOKUP", "QUERY"]
 
-  # Public: all roles (including default) can check system health
+  # release:checklist — RM full, PMC read+update, committer complete, viewer read
+  - type: "ACCESS"
+    resourceSelector: "release:checklist"
+    roles:
+      - role: "release_manager"
+        allowedIntents: ["LOOKUP", "QUERY", "INGEST", "REVISE"]
+      - role: "pmc"
+        allowedIntents: ["LOOKUP", "QUERY", "REVISE"]
+      - role: "committer"
+        allowedIntents: ["LOOKUP", "QUERY", "REVISE"]
+      - role: "viewer"
+        allowedIntents: ["LOOKUP", "QUERY"]
+
+  # release:candidates — RM full, PMC read, committer read, viewer read
+  - type: "ACCESS"
+    resourceSelector: "release:candidates"
+    roles:
+      - role: "release_manager"
+        allowedIntents: ["LOOKUP", "QUERY", "INGEST", "REVISE"]
+      - role: "pmc"
+        allowedIntents: ["LOOKUP", "QUERY"]
+      - role: "committer"
+        allowedIntents: ["LOOKUP", "QUERY"]
+      - role: "viewer"
+        allowedIntents: ["LOOKUP", "QUERY"]
+
+  # release:votes — RM full, PMC read+vote, committer read, viewer read
+  - type: "ACCESS"
+    resourceSelector: "release:votes"
+    roles:
+      - role: "release_manager"
+        allowedIntents: ["LOOKUP", "QUERY", "INGEST", "REVISE"]
+      - role: "pmc"
+        allowedIntents: ["LOOKUP", "QUERY", "INGEST"]
+      - role: "committer"
+        allowedIntents: ["LOOKUP", "QUERY"]
+      - role: "viewer"
+        allowedIntents: ["LOOKUP", "QUERY"]
+
+  # system:* — all roles (including default) can read system resources
   - type: "ACCESS"
     resourceSelector: "system:*"
     roles:
       - role: "release_manager"
-        allowedIntents: ["LOOKUP"]
+        allowedIntents: ["LOOKUP", "QUERY"]
       - role: "pmc"
-        allowedIntents: ["LOOKUP"]
+        allowedIntents: ["LOOKUP", "QUERY"]
       - role: "committer"
-        allowedIntents: ["LOOKUP"]
+        allowedIntents: ["LOOKUP", "QUERY"]
       - role: "viewer"
-        allowedIntents: ["LOOKUP"]
+        allowedIntents: ["LOOKUP", "QUERY"]
       - role: "default"
-        allowedIntents: ["LOOKUP"]
+        allowedIntents: ["LOOKUP", "QUERY"]

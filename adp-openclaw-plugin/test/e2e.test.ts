@@ -20,7 +20,7 @@
  */
 
 import { execSync } from "node:child_process";
-import { mkdtempSync, cpSync, rmSync, mkdirSync } from "node:fs";
+import { mkdtempSync, cpSync, rmSync, mkdirSync, existsSync } from "node:fs";
 import { resolve, dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
@@ -74,6 +74,12 @@ function prepareTempWorkDir(): { workDir: string; manifestsPath: string; cleanup
 
 	cpSync(MANIFESTS_DIR, manifestsPath, { recursive: true });
 
+	// Seed the people CSV so system:people has data
+	const dataDir = join(dirname(MANIFESTS_DIR), "data");
+	if (existsSync(dataDir)) {
+		cpSync(dataDir, join(workDir, "data"), { recursive: true });
+	}
+
 	return {
 		workDir,
 		manifestsPath,
@@ -117,7 +123,7 @@ describe.skipIf(!hypervisorAvailable)("HypervisorClient E2E (real hypervisor)", 
 				"release:checklist",
 				"release:releases",
 				"release:votes",
-				"system:health",
+				"system:people",
 			]);
 		});
 
@@ -222,8 +228,8 @@ describe.skipIf(!hypervisorAvailable)("HypervisorClient E2E (real hypervisor)", 
 		});
 	});
 
-	describe("system:health", () => {
-		it("system:health is visible to default role", { timeout: 15_000 }, async () => {
+	describe("system:people", () => {
+		it("system:people is visible to default role", { timeout: 15_000 }, async () => {
 			const defaultLogger = createTestLogger();
 			const defaultClient = new HypervisorClient(defaultLogger.logger);
 			try {
@@ -234,7 +240,7 @@ describe.skipIf(!hypervisorAvailable)("HypervisorClient E2E (real hypervisor)", 
 				const result = await defaultClient.discover();
 				expect(result.resources.length).toBeGreaterThanOrEqual(1);
 				const ids = result.resources.map((r) => r.resourceId);
-				expect(ids).toContain("system:health");
+				expect(ids).toContain("system:people");
 			} finally {
 				await defaultClient.close();
 			}
