@@ -255,6 +255,22 @@ tail -f /opt/adp/logs/hypervisor.log
 > (`./logs/hypervisor.log`). If you need an absolute path, edit the file
 > directly. See `manifests/logging_conf.yaml` for an example.
 
+## Agent Skill
+
+A companion agent skill is available at
+[`adp-skills/adp-openclaw-skill`](../adp-skills/adp-openclaw-skill/) that teaches
+OpenClaw agents how to correctly call the ADP tools. It covers the recommended
+workflow (discover → describe → execute), parameter formats for each intent class,
+blob storage conventions, and common patterns.
+
+Install it by symlinking into your OpenClaw skills directory:
+
+```bash
+ln -s /path/to/adp-connectors/adp-skills/adp-openclaw-skill ~/.openclaw/skills/adp-openclaw-skill
+```
+
+The skill will be automatically discovered on the next gateway restart.
+
 ## Development
 
 ```bash
