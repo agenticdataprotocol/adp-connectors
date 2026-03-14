@@ -61,6 +61,10 @@ export function registerAdpService(api: OpenClawPluginApi, config: AdpPluginConf
 
         client.spawn(command, args, Object.keys(env).length > 0 ? env : undefined);
 
+        if (config.username) {
+          client.setAuthorization(config.username);
+        }
+
         const result = await client.initialize();
         api.logger.info(
           `adp-bridge: Hypervisor connected (server=${result.serverInfo.name} v${result.serverInfo.version}, protocol=${result.protocolVersion})`,

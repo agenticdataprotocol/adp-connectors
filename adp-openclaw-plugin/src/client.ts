@@ -51,6 +51,9 @@ interface Logger {
 	error: (message: string) => void;
 }
 
+// Methods exempt from auth injection (server skips auth for these).
+const AUTH_EXEMPT_METHODS = new Set(["adp.initialize", "adp.ping"]);
+
 export class HypervisorClient {
 	private process: ChildProcess | null = null;
 	private readline: ReadlineInterface | null = null;
@@ -64,9 +67,19 @@ export class HypervisorClient {
 		}
 	>();
 	private sendLock: Promise<void> = Promise.resolve();
+	private _authorization: string | undefined;
 
 	constructor(logger: Logger) {
 		this.logger = logger;
+	}
+
+	/**
+	 * Set the Basic Auth credential injected into every JSON-RPC request.
+	 * The Hypervisor's BasicAuthenticator uses only the username for RBAC
+	 * role resolution, so password is left empty.
+	 */
+	setAuthorization(username: string): void {
+		this._authorization = `Basic ${Buffer.from(`${username}:`).toString("base64")}`;
 	}
 
 	// =========================================================================
@@ -271,6 +284,14 @@ export class HypervisorClient {
 	private async send<T>(method: string, params?: Record<string, unknown>): Promise<T> {
 		if (!this.process || !this.process.stdin) {
 			throw new Error("HypervisorClient: not connected");
+		}
+
+		// Inject _meta.authorization into params for authenticated methods.
+		if (this._authorization && !AUTH_EXEMPT_METHODS.has(method)) {
+			params = params ?? {};
+			const meta = (params._meta as Record<string, unknown>) ?? {};
+			meta.authorization = this._authorization;
+			params._meta = meta;
 		}
 
 		const id = ++this.requestId;

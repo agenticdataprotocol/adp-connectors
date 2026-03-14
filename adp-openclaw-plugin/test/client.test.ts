@@ -175,6 +175,48 @@ describe("HypervisorClient", () => {
 		});
 	});
 
+	describe("authorization", () => {
+		it("sends authorization in _meta when username is set", async () => {
+			spawnMock();
+			client.setAuthorization("admin");
+			await client.initialize();
+
+			// test.echo returns the raw params it received, so we can verify injection
+			const result = await (client as any).send("test.echo", { foo: "bar" });
+			const meta = result.params._meta;
+			expect(meta).toBeDefined();
+			expect(meta.authorization).toBe(
+				`Basic ${Buffer.from("admin:").toString("base64")}`,
+			);
+			// Original params are preserved
+			expect(result.params.foo).toBe("bar");
+		});
+
+		it("does not send authorization for initialize and ping", async () => {
+			spawnMock();
+			client.setAuthorization("admin");
+
+			// initialize and ping are exempt — the mock doesn't echo params for these,
+			// but we verify they succeed without the server rejecting them and that
+			// test.echo on a non-exempt method DOES have auth (covered above).
+			const initResult = await client.initialize();
+			expect(initResult.protocolVersion).toBe("2026-01-20");
+			await client.ping();
+		});
+
+		it("creates params with _meta when params is undefined", async () => {
+			spawnMock();
+			client.setAuthorization("admin");
+			await client.initialize();
+
+			// send with no params — auth injection should create the params object
+			const result = await (client as any).send("test.echo");
+			const meta = result.params._meta;
+			expect(meta).toBeDefined();
+			expect(meta.authorization).toMatch(/^Basic /);
+		});
+	});
+
 	describe("concurrent requests", () => {
 		it("should handle multiple concurrent requests correctly", async () => {
 			spawnMock();

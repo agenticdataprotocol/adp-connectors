@@ -84,6 +84,12 @@ def handle(request):
             "id": req_id,
             "result": {"results": []},
         }
+    elif method == "test.echo":
+        return {
+            "jsonrpc": "2.0",
+            "id": req_id,
+            "result": {"params": params},
+        }
     elif method == "test.error":
         return {
             "jsonrpc": "2.0",
