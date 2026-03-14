@@ -1,6 +1,9 @@
 # ADP Hypervisor logging configuration
 # Follows Python logging.config.dictConfig format
 # Place in the same directory as your manifest YAML files
+#
+# The file handler `filename` is relative and resolves from the Hypervisor's
+# working directory (CWD).  Override with an absolute path if needed.
 
 version: 1
 
@@ -17,7 +20,7 @@ handlers:
   file:
     class: logging.handlers.RotatingFileHandler
     formatter: standard
-    filename: /home/liminghuang/adp-demo/logs/hypervisor.log
+    filename: ./logs/hypervisor.log
     maxBytes: 10485760
     backupCount: 5
     encoding: utf8

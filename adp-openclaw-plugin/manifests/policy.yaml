@@ -55,3 +55,18 @@ policies:
     roles:
       - role: "viewer"
         allowedIntents: ["LOOKUP", "QUERY"]
+
+  # Public: all roles (including default) can check system health
+  - type: "ACCESS"
+    resourceSelector: "system:*"
+    roles:
+      - role: "release_manager"
+        allowedIntents: ["LOOKUP"]
+      - role: "pmc"
+        allowedIntents: ["LOOKUP"]
+      - role: "committer"
+        allowedIntents: ["LOOKUP"]
+      - role: "viewer"
+        allowedIntents: ["LOOKUP"]
+      - role: "default"
+        allowedIntents: ["LOOKUP"]

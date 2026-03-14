@@ -37,11 +37,9 @@ JSON-RPC 2.0 on stdio (NDJSON framing):
 
 ```bash
 # Install from local path
-# node /home/liminghuang/adp-demo/openclaw/dist/index.js plugins install /path/to/adp-openclaw-plugin
 openclaw plugins install /path/to/adp-openclaw-plugin
 
 # Or if developing, use --link for symlink
-# node /home/liminghuang/adp-demo/openclaw/dist/index.js plugins install /home/liminghuang/adp-demo/adp-connectors/adp-openclaw-plugin --link
 openclaw plugins install /path/to/adp-openclaw-plugin --link
 ```
 
@@ -79,21 +77,38 @@ python -m adp_hypervisor --help
 
 ```bash
 # Install plugin dependencies
-cd /home/liminghuang/adp-demo/adp-connectors/adp-openclaw-plugin
+cd /path/to/adp-connectors/adp-openclaw-plugin
 npm install
 
 # Set required config BEFORE install (order matters!)
-node /home/liminghuang/adp-demo/openclaw/dist/index.js config set plugins.entries.adp-openclaw-plugin.config.configPath /home/liminghuang/adp-demo/adp-connectors/adp-openclaw-plugin/manifests
+# configPath points to the directory containing ADP manifest YAML files
+openclaw config set plugins.entries.adp-openclaw-plugin.config.configPath /path/to/adp-connectors/adp-openclaw-plugin/manifests
 
 # Set Python path to virtualenv (important for PM2-managed processes)
-node /home/liminghuang/adp-demo/openclaw/dist/index.js config set plugins.entries.adp-openclaw-plugin.config.command /home/liminghuang/adp-demo/litellm_env/bin/python
+openclaw config set plugins.entries.adp-openclaw-plugin.config.command /path/to/venv/bin/python
 
 # Optional: set username for RBAC
-node /home/liminghuang/adp-demo/openclaw/dist/index.js config set plugins.entries.adp-openclaw-plugin.config.username release_manager
+openclaw config set plugins.entries.adp-openclaw-plugin.config.username release_manager
 
 # Link the plugin
-node /home/liminghuang/adp-demo/openclaw/dist/index.js plugins install /home/liminghuang/adp-demo/adp-connectors/adp-openclaw-plugin --link
+openclaw plugins install /path/to/adp-connectors/adp-openclaw-plugin --link
 ```
+
+#### Data directory setup
+
+The shipped manifests use **relative paths** (`./data` for storage, `./logs/` for
+log files). These resolve from the Hypervisor's working directory, which the
+plugin sets to the **parent** of `configPath`.
+
+For example, if `configPath` is `/opt/adp/manifests`, create the data and log
+directories alongside it:
+
+```bash
+mkdir -p /opt/adp/data /opt/adp/logs
+```
+
+To use a different location, either override `uri` in `physical.yaml` with an
+absolute path or symlink `data` to the desired location.
 
 ### 3. Deploy Dora workspace addendum
 
@@ -232,19 +247,13 @@ pm2 logs openclaw-gateway --lines 50
 # OpenClaw gateway log file
 tail -f /tmp/openclaw/openclaw-$(date +%Y-%m-%d).log
 
-# Hypervisor's own log file
-# With logging_conf.yaml: uses the configured absolute path
-cat /home/liminghuang/adp-demo/logs/hypervisor.log
-
-# Without logging_conf.yaml: defaults to ./hypervisor-logs/hypervisor.log
-# relative to the process working directory, which varies depending on
-# how the gateway was started (e.g., PM2 cwd or ~/.openclaw/workspace/)
-find /home/liminghuang -name "hypervisor.log" 2>/dev/null
+# Hypervisor's own log file (relative path from manifests parent dir)
+tail -f /opt/adp/logs/hypervisor.log
 ```
 
-> **Tip:** Add a `logging_conf.yaml` to the manifests directory with an absolute
-> `filename` path to avoid log files scattering across multiple working directories.
-> See `manifests/logging_conf.yaml` for an example.
+> **Tip:** The shipped `logging_conf.yaml` uses a relative `filename`
+> (`./logs/hypervisor.log`). If you need an absolute path, edit the file
+> directly. See `manifests/logging_conf.yaml` for an example.
 
 ## Development
 

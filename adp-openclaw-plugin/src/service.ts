@@ -20,6 +20,9 @@
  * Exposes a `getClient()` getter for tool implementations.
  */
 
+import { mkdirSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
 
 import type { AdpPluginConfig } from "./types.js";
@@ -59,7 +62,16 @@ export function registerAdpService(api: OpenClawPluginApi, config: AdpPluginConf
           env.ADP_USERNAME = config.username;
         }
 
-        client.spawn(command, args, Object.keys(env).length > 0 ? env : undefined);
+        // Set CWD to the parent of configPath so relative manifest paths
+        // (e.g. `./data`, `./logs/`) resolve alongside the manifests directory.
+        const cwd = dirname(config.configPath);
+
+        // LocalFSBackend.connect() requires the root path to exist upfront
+        // (auto_create_source only creates source sub-dirs, not the root).
+        // Ensure `./data` exists so the Hypervisor doesn't crash on first start.
+        mkdirSync(resolve(cwd, "data"), { recursive: true });
+
+        client.spawn(command, args, Object.keys(env).length > 0 ? env : undefined, cwd);
 
         if (config.username) {
           client.setAuthorization(config.username);

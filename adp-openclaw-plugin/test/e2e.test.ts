@@ -20,14 +20,13 @@
  */
 
 import { execSync } from "node:child_process";
-import { mkdtempSync, cpSync, readFileSync, writeFileSync, rmSync, mkdirSync } from "node:fs";
+import { mkdtempSync, cpSync, rmSync, mkdirSync } from "node:fs";
 import { resolve, dirname, join } from "node:path";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 
 import { HypervisorClient } from "../src/client.js";
-import { ADPError, ErrorCode } from "../src/types.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const MANIFESTS_DIR = resolve(__dirname, "..", "manifests");
@@ -55,51 +54,30 @@ function createTestLogger() {
 }
 
 /**
- * Prepare a temporary manifests directory with a writable BLOB_STORAGE path
- * and logging directed to stderr only (no file handler).
+ * Prepare a temporary working directory for the Hypervisor.
+ *
+ * Layout:
+ *   <tempBase>/manifests/   ← copied from source manifests
+ *   <tempBase>/data/        ← matches physical.yaml `uri: "./data"`
+ *   <tempBase>/logs/        ← matches logging_conf.yaml `filename: ./logs/hypervisor.log`
+ *
+ * The Hypervisor is spawned with `cwd: tempBase`, so all relative paths in
+ * the manifests resolve correctly — no patching required.
  */
-function prepareTempManifests(): { manifestsPath: string; dataDir: string; cleanup: () => void } {
-	const tempBase = mkdtempSync(join(tmpdir(), "adp-e2e-"));
-	const manifestsPath = join(tempBase, "manifests");
-	const dataDir = join(tempBase, "data");
+function prepareTempWorkDir(): { workDir: string; manifestsPath: string; cleanup: () => void } {
+	const workDir = mkdtempSync(join(tmpdir(), "adp-e2e-"));
+	const manifestsPath = join(workDir, "manifests");
 
 	mkdirSync(manifestsPath, { recursive: true });
-	mkdirSync(dataDir, { recursive: true });
+	mkdirSync(join(workDir, "data"), { recursive: true });
+	mkdirSync(join(workDir, "logs"), { recursive: true });
 
-	// Copy all manifests
 	cpSync(MANIFESTS_DIR, manifestsPath, { recursive: true });
 
-	// Patch physical.yaml to use the temp data dir
-	const physicalPath = join(manifestsPath, "physical.yaml");
-	const physical = readFileSync(physicalPath, "utf-8");
-	writeFileSync(physicalPath, physical.replace(/\/home\/liminghuang\/adp-demo\/adp-release-data/, dataDir));
-
-	// Patch logging_conf.yaml to remove file handler (path won't exist locally)
-	const loggingPath = join(manifestsPath, "logging_conf.yaml");
-	writeFileSync(
-		loggingPath,
-		[
-			"version: 1",
-			"formatters:",
-			"  standard:",
-			'    format: "%(asctime)s [%(levelname)s] %(name)s: %(message)s"',
-			'    datefmt: "%Y-%m-%dT%H:%M:%S"',
-			"handlers:",
-			"  console:",
-			"    class: logging.StreamHandler",
-			"    formatter: standard",
-			"    stream: ext://sys.stderr",
-			"root:",
-			"  level: WARNING",
-			"  handlers: [console]",
-			"",
-		].join("\n"),
-	);
-
 	return {
+		workDir,
 		manifestsPath,
-		dataDir,
-		cleanup: () => rmSync(tempBase, { recursive: true, force: true }),
+		cleanup: () => rmSync(workDir, { recursive: true, force: true }),
 	};
 }
 
@@ -108,15 +86,17 @@ describe.skipIf(!hypervisorAvailable)("HypervisorClient E2E (real hypervisor)", 
 	let testLogger: ReturnType<typeof createTestLogger>;
 	let tempCleanup: () => void;
 	let manifestsPath: string;
+	let workDir: string;
 
 	beforeAll(async () => {
-		const temp = prepareTempManifests();
+		const temp = prepareTempWorkDir();
 		manifestsPath = temp.manifestsPath;
+		workDir = temp.workDir;
 		tempCleanup = temp.cleanup;
 
 		testLogger = createTestLogger();
 		client = new HypervisorClient(testLogger.logger);
-		client.spawn("python", ["-m", "adp_hypervisor", "--config", manifestsPath]);
+		client.spawn("python", ["-m", "adp_hypervisor", "--config", manifestsPath], undefined, workDir);
 		await client.initialize();
 		client.setAuthorization("minghuang");
 	}, 15_000);
@@ -129,7 +109,7 @@ describe.skipIf(!hypervisorAvailable)("HypervisorClient E2E (real hypervisor)", 
 	describe("discover", () => {
 		it("lists release domain resources", { timeout: 15_000 }, async () => {
 			const result = await client.discover();
-			expect(result.resources).toHaveLength(4);
+			expect(result.resources).toHaveLength(5);
 
 			const ids = result.resources.map((r) => r.resourceId).sort();
 			expect(ids).toEqual([
@@ -137,6 +117,7 @@ describe.skipIf(!hypervisorAvailable)("HypervisorClient E2E (real hypervisor)", 
 				"release:checklist",
 				"release:releases",
 				"release:votes",
+				"system:health",
 			]);
 		});
 
@@ -241,6 +222,25 @@ describe.skipIf(!hypervisorAvailable)("HypervisorClient E2E (real hypervisor)", 
 		});
 	});
 
+	describe("system:health", () => {
+		it("system:health is visible to default role", { timeout: 15_000 }, async () => {
+			const defaultLogger = createTestLogger();
+			const defaultClient = new HypervisorClient(defaultLogger.logger);
+			try {
+				defaultClient.spawn("python", ["-m", "adp_hypervisor", "--config", manifestsPath], undefined, workDir);
+				await defaultClient.initialize();
+				defaultClient.setAuthorization("unknown-user");
+
+				const result = await defaultClient.discover();
+				expect(result.resources.length).toBeGreaterThanOrEqual(1);
+				const ids = result.resources.map((r) => r.resourceId);
+				expect(ids).toContain("system:health");
+			} finally {
+				await defaultClient.close();
+			}
+		});
+	});
+
 	describe("RBAC", () => {
 		it("viewer cannot INGEST", { timeout: 15_000 }, async () => {
 			// Create a second client with viewer role
@@ -248,7 +248,7 @@ describe.skipIf(!hypervisorAvailable)("HypervisorClient E2E (real hypervisor)", 
 			const viewerClient = new HypervisorClient(viewerLogger.logger);
 
 			try {
-				viewerClient.spawn("python", ["-m", "adp_hypervisor", "--config", manifestsPath]);
+				viewerClient.spawn("python", ["-m", "adp_hypervisor", "--config", manifestsPath], undefined, workDir);
 				await viewerClient.initialize();
 				viewerClient.setAuthorization("bob");
 

@@ -136,3 +136,19 @@ resources:
         - fieldId: "voted_at"
           type: "TIMESTAMP"
           description: "Vote timestamp"
+
+  - resourceId: "system:health"
+    intentClasses: ["LOOKUP"]
+    version: 1
+    description: "System health check endpoint for connectivity verification"
+    backendId: "release_storage"
+    sourceDefinition:
+      source: "health"
+      fields:
+        - fieldId: "status"
+          type: "STRING"
+          description: "System status"
+          samples: ["ok"]
+        - fieldId: "timestamp"
+          type: "TIMESTAMP"
+          description: "Health check timestamp"

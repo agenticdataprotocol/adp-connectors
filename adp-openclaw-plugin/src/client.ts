@@ -88,8 +88,10 @@ export class HypervisorClient {
 
 	/**
 	 * Spawn the Hypervisor subprocess.
+	 * @param cwd Working directory for the subprocess. Relative paths in
+	 *            manifests (e.g. `./data`, `./logs/`) resolve from here.
 	 */
-	spawn(command: string, args: string[], env?: Record<string, string>): void {
+	spawn(command: string, args: string[], env?: Record<string, string>, cwd?: string): void {
 		if (this.process) {
 			throw new Error("HypervisorClient: already spawned");
 		}
@@ -99,6 +101,7 @@ export class HypervisorClient {
 		this.process = spawn(command, args, {
 			stdio: ["pipe", "pipe", "pipe"],
 			env: mergedEnv,
+			cwd,
 		});
 
 		// Set up stdout readline for NDJSON parsing

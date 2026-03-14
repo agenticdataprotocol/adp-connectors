@@ -1,5 +1,8 @@
 # ADP Physical Manifest - Storage backend definitions
-# Deploy path: ~/adp-demo/adp-release-manifest/physical.yaml
+#
+# The `uri` below is relative and resolves from the Hypervisor's working
+# directory (CWD).  For production, either create a `data/` directory next
+# to your manifests' parent, or override `uri` with an absolute path.
 
 version: "1.0.0"
 
@@ -9,4 +12,4 @@ backends:
     provider: "local"
     config:
       type: "BLOB_STORAGE"
-      uri: "/home/liminghuang/adp-demo/adp-release-data"
+      uri: "./data"
