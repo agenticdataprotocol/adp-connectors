@@ -33,8 +33,22 @@ JSON-RPC 2.0 on stdio (NDJSON framing):
 
 ## Installation
 
+### Option A — CLI install
+
 ```bash
-# Copy plugin to OpenClaw extensions directory
+# Install from local path
+# node /home/liminghuang/adp-demo/openclaw/dist/index.js plugins install /path/to/adp-openclaw-plugin
+openclaw plugins install /path/to/adp-openclaw-plugin
+
+# Or if developing, use --link for symlink
+# node /home/liminghuang/adp-demo/openclaw/dist/index.js plugins install /home/liminghuang/adp-demo/adp-connectors/adp-openclaw-plugin --link
+openclaw plugins install /path/to/adp-openclaw-plugin --link
+```
+
+### Option B — Manual
+
+```bash
+mkdir -p ~/.openclaw/extensions
 cp -r adp-openclaw-plugin ~/.openclaw/extensions/adp-openclaw-plugin
 cd ~/.openclaw/extensions/adp-openclaw-plugin
 npm install --omit=dev
@@ -42,21 +56,35 @@ npm install --omit=dev
 
 ## Configuration
 
-Add the plugin to your OpenClaw config (`~/.openclaw/config.json`):
+Add the plugin configuration to `~/.openclaw/openclaw.json` under `plugins.entries`:
 
 ```json
 {
-  "extensions": {
-    "adp-openclaw-plugin": {
-      "configPath": "/path/to/adp/manifests",
-      "command": "python",
-      "args": ["-m", "adp_hypervisor"],
-      "username": "release_manager",
-      "logLevel": "INFO"
+  "plugins": {
+    "entries": {
+      "adp-openclaw-plugin": {
+        "enabled": true,
+        "config": {
+          "configPath": "/path/to/adp/manifests",
+          "username": "release_manager",
+          "logLevel": "INFO"
+        }
+      }
     }
   }
 }
 ```
+
+Or via CLI:
+
+```bash
+openclaw plugins enable adp-openclaw-plugin
+openclaw config set plugins.entries.adp-openclaw-plugin.config.configPath /path/to/adp/manifests
+openclaw config set plugins.entries.adp-openclaw-plugin.config.username release_manager
+openclaw config set plugins.entries.adp-openclaw-plugin.config.logLevel INFO
+```
+
+### Configuration fields
 
 | Field | Required | Default | Description |
 |-------|----------|---------|-------------|
@@ -66,6 +94,21 @@ Add the plugin to your OpenClaw config (`~/.openclaw/config.json`):
 | `username` | No | — | ADP username for RBAC (sets `ADP_USERNAME` env var) |
 | `logLevel` | No | — | Hypervisor log level (`DEBUG`, `INFO`, `WARNING`, `ERROR`) |
 | `env` | No | — | Additional environment variables for the subprocess |
+
+## Verify Installation
+
+```bash
+# Check plugin is discovered
+openclaw plugins list
+
+# Check plugin details
+openclaw plugins info adp-openclaw-plugin
+
+# Restart gateway and check logs
+pm2 restart openclaw-gateway
+pm2 logs openclaw-gateway --lines 20
+# Should see: adp-bridge: Hypervisor connected (...)
+```
 
 ## Development
 

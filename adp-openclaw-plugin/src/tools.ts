@@ -19,13 +19,26 @@
  * OpenClaw tools, callable by any agent (including Dora).
  */
 
-import { Type } from "@sinclair/typebox";
 import type { OpenClawPluginApi } from "openclaw/plugin-sdk";
 
 import type { HypervisorClient } from "./client.js";
 import type { DiscoverFilter, Intent, IntentClass } from "./types.js";
 
 type ClientGetter = () => HypervisorClient;
+
+// JSON Schema helpers (plain objects — no external dependency needed)
+const str = (description: string) => ({ type: "string" as const, description });
+const num = (description: string) => ({ type: "number" as const, description });
+const obj = (
+  properties: Record<string, unknown>,
+  opts?: { required?: string[]; additionalProperties?: boolean; description?: string },
+) => ({
+  type: "object" as const,
+  properties,
+  ...(opts?.required ? { required: opts.required } : {}),
+  ...(opts?.additionalProperties !== undefined ? { additionalProperties: opts.additionalProperties } : {}),
+  ...(opts?.description ? { description: opts.description } : {}),
+});
 
 export function registerAdpTools(api: OpenClawPluginApi, getClient: ClientGetter): void {
   // ─── adp_discover ───
@@ -36,18 +49,10 @@ export function registerAdpTools(api: OpenClawPluginApi, getClient: ClientGetter
       "Browse available ADP data resources. Returns a list of resources with their IDs, " +
       "supported intent classes, and descriptions. Use this to find what data is available " +
       "before calling adp_describe.",
-    parameters: Type.Object({
-      domain_prefix: Type.Optional(
-        Type.String({ description: "Filter resources by domain prefix (e.g., 'release')" }),
-      ),
-      intent_class: Type.Optional(
-        Type.String({
-          description: "Filter by intent class: LOOKUP, QUERY, INGEST, or REVISE",
-        }),
-      ),
-      keyword: Type.Optional(
-        Type.String({ description: "Filter resources by keyword search" }),
-      ),
+    parameters: obj({
+      domain_prefix: str("Filter resources by domain prefix (e.g., 'release')"),
+      intent_class: str("Filter by intent class: LOOKUP, QUERY, INGEST, or REVISE"),
+      keyword: str("Filter resources by keyword search"),
     }),
     async execute(_toolCallId, params) {
       const { domain_prefix, intent_class, keyword } = params as {
@@ -77,17 +82,14 @@ export function registerAdpTools(api: OpenClawPluginApi, getClient: ClientGetter
       "Get the usage contract for a specific ADP resource and intent class. " +
       "Returns field definitions, predicate capabilities, and mutable fields. " +
       "Call this before adp_validate/adp_execute to understand the resource schema.",
-    parameters: Type.Object({
-      resource_id: Type.String({
-        description: 'The resource identifier in "domain:alias" format (e.g., "release:releases")',
-      }),
-      intent_class: Type.String({
-        description: "The intent class: LOOKUP, QUERY, INGEST, or REVISE",
-      }),
-      version: Type.Optional(
-        Type.Number({ description: "Specific resource schema version" }),
-      ),
-    }),
+    parameters: obj(
+      {
+        resource_id: str('The resource identifier in "domain:alias" format (e.g., "release:releases")'),
+        intent_class: str("The intent class: LOOKUP, QUERY, INGEST, or REVISE"),
+        version: num("Specific resource schema version"),
+      },
+      { required: ["resource_id", "intent_class"] },
+    ),
     async execute(_toolCallId, params) {
       const { resource_id, intent_class, version } = params as {
         resource_id: string;
@@ -111,25 +113,25 @@ export function registerAdpTools(api: OpenClawPluginApi, getClient: ClientGetter
       "Validate an ADP intent before execution. Checks field constraints, required " +
       "predicates, and RBAC permissions. Returns validation issues if any. " +
       "Use this to catch errors before calling adp_execute.",
-    parameters: Type.Object({
-      intent: Type.Object(
-        {
-          intentClass: Type.String({
-            description: "Intent type: LOOKUP, QUERY, INGEST, or REVISE",
-          }),
-          resourceId: Type.String({
-            description: 'Target resource in "domain:alias" format',
-          }),
-        },
-        {
-          additionalProperties: true,
-          description:
-            "The full intent object. Structure varies by intentClass: " +
-            "LOOKUP needs {key}, QUERY needs {predicates}, " +
-            "INGEST needs {payload: [...]}, REVISE needs {predicates, payload}",
-        },
-      ),
-    }),
+    parameters: obj(
+      {
+        intent: obj(
+          {
+            intentClass: str("Intent type: LOOKUP, QUERY, INGEST, or REVISE"),
+            resourceId: str('Target resource in "domain:alias" format'),
+          },
+          {
+            required: ["intentClass", "resourceId"],
+            additionalProperties: true,
+            description:
+              "The full intent object. Structure varies by intentClass: " +
+              "LOOKUP needs {key}, QUERY needs {predicates}, " +
+              "INGEST needs {payload: [...]}, REVISE needs {predicates, payload}",
+          },
+        ),
+      },
+      { required: ["intent"] },
+    ),
     async execute(_toolCallId, params) {
       const { intent } = params as { intent: Intent };
 
@@ -150,30 +152,28 @@ export function registerAdpTools(api: OpenClawPluginApi, getClient: ClientGetter
       "LOOKUP (get by key), QUERY (search with predicates), " +
       "INGEST (create new records), REVISE (update existing records). " +
       "Returns the operation results. Consider calling adp_validate first.",
-    parameters: Type.Object({
-      intent: Type.Object(
-        {
-          intentClass: Type.String({
-            description: "Intent type: LOOKUP, QUERY, INGEST, or REVISE",
-          }),
-          resourceId: Type.String({
-            description: 'Target resource in "domain:alias" format',
-          }),
-        },
-        {
-          additionalProperties: true,
-          description:
-            "The full intent object. Structure varies by intentClass: " +
-            "LOOKUP: {intentClass, resourceId, key: {fieldId, op:'EQ', value}}. " +
-            "QUERY: {intentClass, resourceId, predicates: {fieldId, op, value}, limit?}. " +
-            "INGEST: {intentClass, resourceId, payload: [{field: value, ...}]}. " +
-            "REVISE: {intentClass, resourceId, predicates: {...}, payload: {field: newValue}}.",
-        },
-      ),
-      cursor: Type.Optional(
-        Type.String({ description: "Pagination cursor from a previous response" }),
-      ),
-    }),
+    parameters: obj(
+      {
+        intent: obj(
+          {
+            intentClass: str("Intent type: LOOKUP, QUERY, INGEST, or REVISE"),
+            resourceId: str('Target resource in "domain:alias" format'),
+          },
+          {
+            required: ["intentClass", "resourceId"],
+            additionalProperties: true,
+            description:
+              "The full intent object. Structure varies by intentClass: " +
+              "LOOKUP: {intentClass, resourceId, key: {fieldId, op:'EQ', value}}. " +
+              "QUERY: {intentClass, resourceId, predicates: {fieldId, op, value}, limit?}. " +
+              "INGEST: {intentClass, resourceId, payload: [{field: value, ...}]}. " +
+              "REVISE: {intentClass, resourceId, predicates: {...}, payload: {field: newValue}}.",
+          },
+        ),
+        cursor: str("Pagination cursor from a previous response"),
+      },
+      { required: ["intent"] },
+    ),
     async execute(_toolCallId, params) {
       const { intent, cursor } = params as { intent: Intent; cursor?: string };
 

@@ -9,9 +9,7 @@
       "./index.ts"
     ]
   },
-  "dependencies": {
-    "@sinclair/typebox": "0.34.48"
-  },
+  "dependencies": {},
   "devDependencies": {
     "openclaw": "*",
     "vitest": "^4.1.0"
