@@ -1,0 +1,8 @@
+# ADP Physical Manifest - Storage backend definitions
+# Deploy path: ~/adp-demo/adp-release-manifest/physical.yaml
+
+backends:
+  - id: release_fs
+    type: BLOB_STORAGE
+    config:
+      base_path: /home/liminghuang/adp-demo/adp-release-data

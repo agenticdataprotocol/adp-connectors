@@ -1,0 +1,52 @@
+{
+  "id": "adp-openclaw-plugin",
+  "name": "ADP Bridge",
+  "description": "Bridge ADP Hypervisor operations as native OpenClaw tools via stdio JSON-RPC",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "command": {
+        "type": "string",
+        "default": "python",
+        "description": "Command to start ADP Hypervisor"
+      },
+      "args": {
+        "type": "array",
+        "items": { "type": "string" },
+        "default": ["-m", "adp_hypervisor"],
+        "description": "Arguments for the Hypervisor command"
+      },
+      "configPath": {
+        "type": "string",
+        "description": "Path to ADP manifest directory containing physical.yaml, semantic.yaml, policy.yaml"
+      },
+      "env": {
+        "type": "object",
+        "additionalProperties": { "type": "string" },
+        "description": "Additional environment variables for Hypervisor subprocess"
+      },
+      "username": {
+        "type": "string",
+        "description": "ADP username for RBAC authorization"
+      },
+      "logLevel": {
+        "type": "string",
+        "enum": ["DEBUG", "INFO", "WARNING", "ERROR"],
+        "default": "INFO",
+        "description": "Hypervisor log level"
+      }
+    },
+    "required": ["configPath"]
+  },
+  "uiHints": {
+    "configPath": {
+      "label": "Manifest Directory",
+      "help": "Path to the ADP manifest directory on the server"
+    },
+    "username": {
+      "label": "ADP Username",
+      "help": "Username for RBAC authorization"
+    }
+  }
+}

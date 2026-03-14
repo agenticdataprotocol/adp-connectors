@@ -1,0 +1,11 @@
+{
+  "name": "openclaw",
+  "version": "0.0.1",
+  "description": "Empty placeholder package.",
+  "main": "index.js",
+  "files": [
+    "index.js",
+    "README.md"
+  ],
+  "license": "UNLICENSED"
+}

@@ -1,0 +1,125 @@
+# ADP Semantic Manifest - Release domain resource definitions
+# Deploy path: ~/adp-demo/adp-release-manifest/semantic.yaml
+
+resources:
+  - domain: release
+    alias: releases
+    backend: release_fs
+    description: "Apache Gravitino release tracking records"
+    intent_classes: [LOOKUP, QUERY, INGEST, REVISE]
+    fields:
+      - id: version
+        type: STRING
+        description: "Release version (e.g., 1.2.0)"
+        required: true
+      - id: status
+        type: STRING
+        description: "Current release status"
+        whitelist: [planning, preparation, building, voting, publishing, completed, aborted]
+      - id: current_phase
+        type: INTEGER
+        description: "Current phase number (1-5)"
+      - id: rc
+        type: STRING
+        description: "Release candidate identifier (e.g., rc1)"
+      - id: branch
+        type: STRING
+        description: "Release branch name"
+      - id: rm_name
+        type: STRING
+        description: "Release manager full name"
+      - id: rm_asfid
+        type: STRING
+        description: "Release manager ASF ID"
+      - id: previous_version
+        type: STRING
+        description: "Previous release version for changelog"
+      - id: created_at
+        type: STRING
+        description: "Release creation timestamp (ISO 8601)"
+      - id: updated_at
+        type: STRING
+        description: "Last update timestamp (ISO 8601)"
+
+  - domain: release
+    alias: checklist
+    backend: release_fs
+    description: "Release checklist items with completion status"
+    intent_classes: [LOOKUP, QUERY, INGEST, REVISE]
+    fields:
+      - id: version
+        type: STRING
+        description: "Associated release version"
+        required: true
+      - id: phase
+        type: INTEGER
+        description: "Phase number (1-5)"
+      - id: item_id
+        type: STRING
+        description: "Unique checklist item identifier"
+      - id: description
+        type: STRING
+        description: "Checklist item description"
+      - id: status
+        type: STRING
+        whitelist: [pending, in_progress, done, skipped]
+      - id: completed_by
+        type: STRING
+        description: "ASF ID of person who completed this item"
+      - id: completed_at
+        type: STRING
+        description: "Completion timestamp"
+
+  - domain: release
+    alias: candidates
+    backend: release_fs
+    description: "Release candidate build records"
+    intent_classes: [LOOKUP, QUERY, INGEST, REVISE]
+    fields:
+      - id: version
+        type: STRING
+        required: true
+      - id: rc_number
+        type: STRING
+        description: "RC identifier (rc1, rc2, ...)"
+        required: true
+      - id: status
+        type: STRING
+        whitelist: [building, built, voting, passed, failed]
+      - id: build_timestamp
+        type: STRING
+      - id: artifacts_url
+        type: STRING
+        description: "URL to RC artifacts on dist.apache.org"
+      - id: maven_repo_id
+        type: STRING
+        description: "Maven staging repository ID"
+      - id: pypi_url
+        type: STRING
+
+  - domain: release
+    alias: votes
+    backend: release_fs
+    description: "PMC vote tracking for release candidates"
+    intent_classes: [LOOKUP, QUERY, INGEST]
+    fields:
+      - id: version
+        type: STRING
+        required: true
+      - id: rc_number
+        type: STRING
+        required: true
+      - id: voter_name
+        type: STRING
+      - id: voter_asfid
+        type: STRING
+      - id: vote
+        type: STRING
+        whitelist: ["+1", "0", "-1"]
+      - id: is_binding
+        type: BOOLEAN
+        description: "Whether this is a binding PMC vote"
+      - id: comment
+        type: STRING
+      - id: voted_at
+        type: STRING

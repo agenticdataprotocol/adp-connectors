@@ -1,0 +1,47 @@
+# ADP Policy Manifest - RBAC access control
+# Deploy path: ~/adp-demo/adp-release-manifest/policy.yaml
+
+policies:
+  # Release Manager: full access
+  - type: ACCESS
+    resource: "release:*"
+    intent_classes: [LOOKUP, QUERY, INGEST, REVISE]
+    roles: [release_manager]
+
+  # PMC Member: read all, vote, update checklist
+  - type: ACCESS
+    resource: "release:releases"
+    intent_classes: [LOOKUP, QUERY]
+    roles: [pmc]
+
+  - type: ACCESS
+    resource: "release:checklist"
+    intent_classes: [LOOKUP, QUERY, REVISE]
+    roles: [pmc]
+
+  - type: ACCESS
+    resource: "release:candidates"
+    intent_classes: [LOOKUP, QUERY]
+    roles: [pmc]
+
+  - type: ACCESS
+    resource: "release:votes"
+    intent_classes: [LOOKUP, QUERY, INGEST]
+    roles: [pmc]
+
+  # Committer: read-only + checklist completion
+  - type: ACCESS
+    resource: "release:*"
+    intent_classes: [LOOKUP, QUERY]
+    roles: [committer]
+
+  - type: ACCESS
+    resource: "release:checklist"
+    intent_classes: [REVISE]
+    roles: [committer]
+
+  # Viewer: read-only
+  - type: ACCESS
+    resource: "release:*"
+    intent_classes: [LOOKUP, QUERY]
+    roles: [viewer]
