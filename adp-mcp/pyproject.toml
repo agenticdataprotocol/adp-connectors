@@ -14,7 +14,7 @@
 
 [project]
 name = "adp-mcp"
-version = "0.1.0.dev0"
+version = "0.1.0"
 description = "ADP MCP Bridge: Expose ADP Hypervisor resources as MCP tools"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -33,10 +33,8 @@ classifiers = [
 
 dependencies = [
     "mcp[cli]>=1.0,<2.0",
-    # TODO: update to >=0.1.0 once adp-sdk is officially released on PyPI
-    "adp-sdk>=0.1.0.dev0",
-    # TODO: update to >=0.1.0 once adp-hypervisor is officially released on PyPI
-    "adp-hypervisor>=0.1.0.dev0",
+    "adp-sdk>=0.1.0",
+    "adp-hypervisor>=0.1.0",
 ]
 
 [project.optional-dependencies]
