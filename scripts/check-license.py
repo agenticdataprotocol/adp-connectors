@@ -12,62 +12,81 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Check that covered files contain the required license header."""
+"""Check that every file has the required license header.
 
-from __future__ import annotations
+All files are included by default (RAT philosophy); only exclusion patterns are configurable.
+Configuration is read from .license-check.toml in the project root.
+"""
 
-import os
 import sys
 from pathlib import Path
 
-COPYRIGHT_MARKER = "Copyright 2026 Datastrato, Inc."
-
-SCAN_RULES = [
-    {"dirs": ["adp-mcp/src", "adp-mcp/tests", "scripts"], "ext": ".py"},
-    {"dirs": [os.path.join(".github", "workflows")], "ext": ".yml"},
-]
-SCAN_FILES = [Path("CONTRIBUTING.md")]
-SKIP_DIRS = {".venv", "dist", "__pycache__", ".mypy_cache", ".pytest_cache", ".ruff_cache", ".worktrees"}
-
-
-def should_skip_dir(dirname: str) -> bool:
-    return dirname in SKIP_DIRS
+try:
+    import tomllib
+except ModuleNotFoundError:
+    try:
+        import tomli as tomllib  # type: ignore[no-redef]
+    except ModuleNotFoundError:
+        print("Error: requires Python 3.11+ (built-in tomllib) or install 'tomli' via: pip install tomli")
+        sys.exit(1)
 
 
-def collect_files() -> list[Path]:
-    files: list[Path] = []
-    for rule in SCAN_RULES:
-        for base_dir in rule["dirs"]:
-            base_path = Path(base_dir)
-            if not base_path.exists():
-                continue
-            for root, dirs, filenames in os.walk(base_path):
-                dirs[:] = [d for d in dirs if not should_skip_dir(d)]
-                for filename in filenames:
-                    if filename.endswith(rule["ext"]):
-                        files.append(Path(root) / filename)
-    for path in SCAN_FILES:
-        if path.exists():
-            files.append(path)
-    return sorted(files)
+def main() -> None:
+    root = Path(__file__).resolve().parent.parent
+    config_path = root / ".license-check.toml"
 
+    if not config_path.exists():
+        print(f"Error: config file not found: {config_path}")
+        sys.exit(1)
 
-def check_header(path: Path) -> bool:
-    return COPYRIGHT_MARKER in path.read_text(encoding="utf-8")
+    with config_path.open("rb") as f:
+        try:
+            config = tomllib.load(f)
+        except tomllib.TOMLDecodeError as e:
+            print(f"Error: failed to parse {config_path}: {e}")
+            sys.exit(1)
 
+    marker: str = config.get("copyright_marker", "Copyright 2026 Datastrato, Inc.")
+    exclude_patterns: list[str] = config.get("exclude_patterns", [])
 
-def main() -> int:
-    files = collect_files()
-    missing = [str(path) for path in files if not check_header(path)]
+    if not isinstance(marker, str):
+        print(f"Error: 'copyright_marker' must be a string in {config_path}")
+        sys.exit(1)
+
+    if not isinstance(exclude_patterns, list) or not all(isinstance(p, str) for p in exclude_patterns):
+        print(f"Error: 'exclude_patterns' must be a list of strings in {config_path}")
+        sys.exit(1)
+
+    # Include all files by default (RAT philosophy)
+    included: set[Path] = set(root.glob("**/*"))
+
+    excluded: set[Path] = set()
+    for pattern in exclude_patterns:
+        excluded.update(root.glob(pattern))
+
+    files_to_check = sorted(p for p in included - excluded if p.is_file() and not p.is_symlink())
+
+    missing: list[Path] = []
+    for file_path in files_to_check:
+        try:
+            content = file_path.read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            print(f"Warning: skipping non-UTF-8 file: {file_path.relative_to(root)}")
+            continue
+        except OSError as e:
+            print(f"Warning: skipping unreadable file: {file_path.relative_to(root)} ({e})")
+            continue
+        if marker not in content:
+            missing.append(file_path.relative_to(root))
+
     if missing:
-        print("Files missing license header:")
-        for path in missing:
-            print(f"  {path}")
-        print(f"\n{len(missing)} file(s) missing the required license header.")
-        return 1
-    print(f"All {len(files)} file(s) have the required license header.")
-    return 0
+        print(f"The following {len(missing)} file(s) are missing the license header ({marker!r}):")
+        for f in sorted(missing):
+            print(f"  {f}")
+        sys.exit(1)
+
+    print(f"✓ All {len(files_to_check)} checked files have the required license header.")
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()

@@ -1,0 +1,76 @@
+# Copyright 2026 Datastrato, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# All files are included by default — only exclusions need to be configured.
+# Patterns use Python pathlib glob syntax (** matches across directory boundaries).
+# To adjust which files are checked, edit exclude_patterns below.
+
+copyright_marker = "Copyright 2026 Datastrato, Inc."
+
+exclude_patterns = [
+    # Version control
+    ".git/**/*",
+    "**/.gitignore",
+    "**/.gitkeep",
+
+    # Virtual environment and worktrees
+    "**/.venv/**/*",
+    ".worktrees/**/*",
+
+    # IDE settings
+    ".vscode/**/*",
+
+    # Cache and build directories
+    "**/__pycache__/**/*",
+    "**/.pytest_cache/**/*",
+    "**/.ruff_cache/**/*",
+    "**/.mypy_cache/**/*",
+    "**/dist/**/*",
+
+    # Non-source text files
+    "**/*.md",
+    "**/*.lock",
+    "**/*.txt",
+    "**/*.cfg",
+    "**/*.ini",
+
+    # Data, schema, and config files
+    "**/*.json",
+    "**/*.yaml",
+    "schema/**/*",
+
+    # Log files
+    "**/*.log",
+
+    # Binary and compiled files
+    "**/*.whl",
+    "**/*.gz",
+    "**/*.pyc",
+    "**/*.pyo",
+    "**/*.so",
+    "**/*.pem",
+    "**/*.png",
+    "**/*.jpg",
+    "**/*.ico",
+
+    # Type stub marker (PEP 561)
+    "**/*.typed",
+
+    # License and notice files
+    "LICENSE",
+    "NOTICE",
+
+    # GitHub issue templates (workflow YMLs are still checked)
+    ".github/ISSUE_TEMPLATE/**/*",
+]
