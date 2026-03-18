@@ -1,0 +1,16 @@
+INVOICE #003
+------------
+Date:       2025-12-05
+Status:     SHIPPED
+
+Bill To:
+  Bob Smith
+  bob@example.com
+  Portland, OR
+
+Items:
+  2 x USB-C Hub                 $90.00
+                                -------
+  Total                         $90.00
+
+Thank you for shopping with us!

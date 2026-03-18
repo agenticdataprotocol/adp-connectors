@@ -1,0 +1,6 @@
+default_role: "default"
+
+users:
+  admin: "admin"
+  alice: "analyst"
+  bob: "viewer"

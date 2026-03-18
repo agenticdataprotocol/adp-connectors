@@ -1,0 +1,16 @@
+INVOICE #004
+------------
+Date:       2025-12-05
+Status:     DELIVERED
+
+Bill To:
+  Bob Smith
+  bob@example.com
+  Portland, OR
+
+Items:
+  3 x Ballpoint Pen Pack        $17.97
+                                -------
+  Total                         $17.97
+
+Thank you for shopping with us!

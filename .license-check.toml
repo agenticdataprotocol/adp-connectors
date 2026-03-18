@@ -28,6 +28,9 @@ exclude_patterns = [
     "**/.venv/**/*",
     ".worktrees/**/*",
 
+    # Node.js
+    "**/node_modules/**/*",
+
     # IDE settings
     ".vscode/**/*",
 
@@ -48,6 +51,7 @@ exclude_patterns = [
     # Data, schema, and config files
     "**/*.json",
     "**/*.yaml",
+    "**/*.csv",
     "schema/**/*",
 
     # Log files

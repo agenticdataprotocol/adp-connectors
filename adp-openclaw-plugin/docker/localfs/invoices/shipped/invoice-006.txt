@@ -1,0 +1,16 @@
+INVOICE #006
+------------
+Date:       2025-12-11
+Status:     SHIPPED
+
+Bill To:
+  Carol White
+  carol@example.com
+  San Francisco, CA
+
+Items:
+  5 x Notebook (A5)             $62.50
+                                -------
+  Total                         $62.50
+
+Thank you for shopping with us!

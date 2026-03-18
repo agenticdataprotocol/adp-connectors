@@ -10,6 +10,10 @@ This is a monorepo. Each sub-project (e.g. `adp-mcp/`) is an independent Python
 package with its own `pyproject.toml`. Run tooling commands from within the
 sub-project directory.
 
+The `adp-openclaw-plugin/` sub-project is a TypeScript/Node.js package with its
+own `package.json`. Use `npm install`, `npx vitest run`, and `npx tsc --noEmit`
+from within that directory.
+
 ## Python Style
 
 - **Formatting**: Black & Ruff, 100-char line length. Run `black .` and `ruff check .` before committing.

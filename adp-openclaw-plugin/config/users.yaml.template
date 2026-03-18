@@ -1,0 +1,38 @@
+# Copyright 2026 Datastrato, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# User-to-Role Configuration
+# Maps authenticated usernames to roles used by ACCESS policy enforcement.
+#
+# Copy this file as users.yaml and customize for your environment.
+#
+# How it works:
+#   1. Client sends _meta.authorization in JSON-RPC request params
+#      (e.g. "Basic base64(username:password)")
+#   2. Server extracts the username from the Basic Auth header
+#      (TODO: password verification is not yet implemented)
+#   3. Server looks up the username in this file to determine the role
+#   4. The role is checked against ACCESS policies in policy.yaml
+#
+# Requests without _meta.authorization are rejected.
+# If the username is not listed below, the default_role is used.
+# If a username appears more than once, only the last entry takes effect.
+
+default_role: "default"
+
+# Uncomment and customize the user-to-role mappings below:
+# users:
+#   admin: "admin"
+#   alice: "analyst"
+#   bob: "viewer"

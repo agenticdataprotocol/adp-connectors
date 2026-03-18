@@ -79,3 +79,42 @@ jobs:
       - name: Run tests
         working-directory: adp-mcp
         run: uv run python -m unittest discover -s tests -v
+
+  lint-openclaw:
+    name: Lint (adp-openclaw-plugin)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        working-directory: adp-openclaw-plugin
+        run: npm install
+
+      - name: Type check
+        working-directory: adp-openclaw-plugin
+        run: npx tsc --noEmit
+
+  test-openclaw:
+    name: Test (adp-openclaw-plugin) / Node ${{ matrix.node-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: ["20", "22"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install dependencies
+        working-directory: adp-openclaw-plugin
+        run: npm install
+
+      - name: Run tests
+        working-directory: adp-openclaw-plugin
+        run: npx vitest run
