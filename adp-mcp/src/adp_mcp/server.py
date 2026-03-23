@@ -57,6 +57,33 @@ def _build_authorization() -> str | None:
     return str(basic_auth(username, password))
 
 
+# ADP error-code constants (from adp_sdk.types.jsonrpc)
+_INVALID_PARAMS = -32602
+_RESOURCE_NOT_FOUND = -32001
+_VALIDATION_FAILED = -32002
+_UNAUTHORIZED = -32003
+_EXECUTION_FAILED = -32004
+
+_ERROR_HINTS: dict[int, str] = {
+    _INVALID_PARAMS: ("Check that your intent structure matches the schema from adp_describe."),
+    _RESOURCE_NOT_FOUND: "Use adp_discover to find available resources.",
+    _VALIDATION_FAILED: (
+        "Review the validation issues in the error data"
+        " and apply the suggested correction hints."
+    ),
+    _EXECUTION_FAILED: ("Try using adp_validate to check your intent before executing."),
+    _UNAUTHORIZED: "Verify your credentials and resource access permissions.",
+}
+
+
+def _agent_friendly_message(error: ADPError) -> str:
+    """Build an error message with an optional actionable hint for the LLM agent."""
+    hint = _ERROR_HINTS.get(error.code)
+    if hint:
+        return f"{error.message} | Hint: {hint}"
+    return error.message
+
+
 def create_server(config_path: str) -> FastMCP:
     """Create and configure the MCP server with ADP bridge tools.
 
@@ -157,7 +184,13 @@ def create_server(config_path: str) -> FastMCP:
             result = await session.discover(filter=filter_obj, cursor=cursor)
         except ADPError as e:
             logger.error("adp_discover failed: %s", e, exc_info=True)
-            raise McpError(ErrorData(code=INTERNAL_ERROR, message=str(e))) from e
+            raise McpError(
+                ErrorData(
+                    code=e.code,
+                    message=_agent_friendly_message(e),
+                    data=e.data,
+                )
+            ) from e
         except Exception as e:
             logger.exception("Unexpected error in adp_discover: %s", e)
             raise McpError(
@@ -220,7 +253,13 @@ def create_server(config_path: str) -> FastMCP:
             )
         except ADPError as e:
             logger.error("adp_describe failed: %s", e, exc_info=True)
-            raise McpError(ErrorData(code=INTERNAL_ERROR, message=str(e))) from e
+            raise McpError(
+                ErrorData(
+                    code=e.code,
+                    message=_agent_friendly_message(e),
+                    data=e.data,
+                )
+            ) from e
         except Exception as e:
             logger.exception("Unexpected error in adp_describe: %s", e)
             raise McpError(
@@ -258,7 +297,13 @@ def create_server(config_path: str) -> FastMCP:
             result = await session.validate(intent=intent)
         except ADPError as e:
             logger.error("adp_validate failed: %s", e, exc_info=True)
-            raise McpError(ErrorData(code=INTERNAL_ERROR, message=str(e))) from e
+            raise McpError(
+                ErrorData(
+                    code=e.code,
+                    message=_agent_friendly_message(e),
+                    data=e.data,
+                )
+            ) from e
         except Exception as e:
             logger.exception("Unexpected error in adp_validate: %s", e)
             raise McpError(
@@ -301,7 +346,13 @@ def create_server(config_path: str) -> FastMCP:
             result = await session.execute(intent=intent, cursor=cursor)
         except ADPError as e:
             logger.error("adp_execute failed: %s", e, exc_info=True)
-            raise McpError(ErrorData(code=INTERNAL_ERROR, message=str(e))) from e
+            raise McpError(
+                ErrorData(
+                    code=e.code,
+                    message=_agent_friendly_message(e),
+                    data=e.data,
+                )
+            ) from e
         except Exception as e:
             logger.exception("Unexpected error in adp_execute: %s", e)
             raise McpError(
