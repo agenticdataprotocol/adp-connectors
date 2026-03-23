@@ -21,7 +21,13 @@ from contextlib import asynccontextmanager
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from adp_sdk.shared import ADPError
+from adp_sdk.shared import (
+    ExecutionFailedError,
+    InvalidParamsError,
+    ParseError,
+    ResourceNotFoundError,
+    ValidationFailedError,
+)
 from mcp.shared.memory import create_connected_server_and_client_session
 
 from adp_mcp.server import create_server
@@ -115,7 +121,7 @@ class TestAdpDiscover(unittest.IsolatedAsyncioTestCase):
 
     async def test_discover_adp_error(self) -> None:
         session = _mock_session()
-        session.discover.side_effect = ADPError("upstream failure")
+        session.discover.side_effect = ResourceNotFoundError("upstream failure")
         server = create_server("/fake/config")
 
         with _patch_stdio_client(session):
@@ -124,6 +130,8 @@ class TestAdpDiscover(unittest.IsolatedAsyncioTestCase):
 
         self.assertTrue(result.isError)
         self.assertIn("upstream failure", result.content[0].text)
+        self.assertIn("Hint:", result.content[0].text)
+        self.assertIn("adp_discover", result.content[0].text)
 
 
 # ===========================================================================
@@ -183,7 +191,7 @@ class TestAdpDescribe(unittest.IsolatedAsyncioTestCase):
 
     async def test_describe_adp_error(self) -> None:
         session = _mock_session()
-        session.describe.side_effect = ADPError("describe failed")
+        session.describe.side_effect = ResourceNotFoundError("describe failed")
         server = create_server("/fake/config")
 
         with _patch_stdio_client(session):
@@ -195,6 +203,8 @@ class TestAdpDescribe(unittest.IsolatedAsyncioTestCase):
 
         self.assertTrue(result.isError)
         self.assertIn("describe failed", result.content[0].text)
+        self.assertIn("Hint:", result.content[0].text)
+        self.assertIn("adp_discover", result.content[0].text)
 
 
 # ===========================================================================
@@ -258,6 +268,27 @@ class TestAdpValidate(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(raw["valid"])
         self.assertEqual(len(raw["issues"]), 1)
 
+    async def test_validate_adp_error(self) -> None:
+        session = _mock_session()
+        session.validate.side_effect = ValidationFailedError(
+            "schema mismatch", data={"field": "predicates"}
+        )
+        server = create_server("/fake/config")
+        intent = {
+            "intentClass": "QUERY",
+            "resourceId": "com.acme:users",
+            "predicates": {"op": "AND", "predicates": []},
+        }
+
+        with _patch_stdio_client(session):
+            async with create_connected_server_and_client_session(server) as client:
+                result = await client.call_tool("adp_validate", {"intent": intent})
+
+        self.assertTrue(result.isError)
+        self.assertIn("schema mismatch", result.content[0].text)
+        self.assertIn("Hint:", result.content[0].text)
+        self.assertIn("correction hints", result.content[0].text)
+
 
 # ===========================================================================
 
@@ -315,3 +346,65 @@ class TestAdpExecute(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(session.execute.called)
         self.assertTrue(result.isError)
         self.assertIn("validation", result.content[0].text.lower())
+
+    async def test_execute_adp_error(self) -> None:
+        session = _mock_session()
+        session.execute.side_effect = ExecutionFailedError("timeout on upstream")
+        server = create_server("/fake/config")
+        intent = {
+            "intentClass": "QUERY",
+            "resourceId": "com.acme:users",
+            "predicates": {"op": "AND", "predicates": []},
+        }
+
+        with _patch_stdio_client(session):
+            async with create_connected_server_and_client_session(server) as client:
+                result = await client.call_tool("adp_execute", {"intent": intent})
+
+        self.assertTrue(result.isError)
+        self.assertIn("timeout on upstream", result.content[0].text)
+        self.assertIn("Hint:", result.content[0].text)
+        self.assertIn("adp_validate", result.content[0].text)
+
+
+# ===========================================================================
+
+
+class TestErrorHints(unittest.IsolatedAsyncioTestCase):
+    """Tests for _agent_friendly_message hint logic across error codes."""
+
+    async def test_error_hint_included_for_known_codes(self) -> None:
+        error_cases = [
+            (ResourceNotFoundError("not found"), "adp_discover"),
+            (InvalidParamsError("bad params"), "adp_describe"),
+            (ExecutionFailedError("exec failed"), "adp_validate"),
+        ]
+        server = create_server("/fake/config")
+
+        for error, expected_hint_fragment in error_cases:
+            with self.subTest(error_type=type(error).__name__):
+                session = _mock_session()
+                session.discover.side_effect = error
+
+                with _patch_stdio_client(session):
+                    async with create_connected_server_and_client_session(server) as client:
+                        result = await client.call_tool("adp_discover", {})
+
+                msg = result.content[0].text
+                self.assertTrue(result.isError)
+                self.assertIn(error.message, msg)
+                self.assertIn("Hint:", msg)
+                self.assertIn(expected_hint_fragment, msg)
+
+    async def test_error_without_hint_for_unknown_code(self) -> None:
+        session = _mock_session()
+        session.discover.side_effect = ParseError("bad json")
+        server = create_server("/fake/config")
+
+        with _patch_stdio_client(session):
+            async with create_connected_server_and_client_session(server) as client:
+                result = await client.call_tool("adp_discover", {})
+
+        self.assertTrue(result.isError)
+        self.assertIn("bad json", result.content[0].text)
+        self.assertNotIn("Hint:", result.content[0].text)
