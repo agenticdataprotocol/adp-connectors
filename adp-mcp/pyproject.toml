@@ -83,3 +83,7 @@ disallow_untyped_defs = true
 [[tool.mypy.overrides]]
 module = ["mcp.*", "adp_sdk", "adp_sdk.*"]
 ignore_missing_imports = true
+
+[tool.uv.sources]
+adp-sdk = { path = "/Users/mchades/copilot/adp/python-sdk", editable = true }
+adp-hypervisor = { path = "/Users/mchades/copilot/adp/adp-hypervisor", editable = true }

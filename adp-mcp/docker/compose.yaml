@@ -13,26 +13,26 @@
 # limitations under the License.
 
 services:
-  mcp-runtime:
-    build:
-      context: .
-    container_name: adp-mcp-runtime
-    depends_on:
-      postgres:
-        condition: service_healthy
-      pgvector:
-        condition: service_healthy
-      mongodb:
-        condition: service_healthy
-    volumes:
-      - ./config:/opt/adp/config:ro
-      - ./localfs:/opt/adp/localfs
-      - ./logs:/opt/adp/logs
-    environment:
-      - ADP_USERNAME=demo
-      - ADP_PASSWORD=demo
-      - PG_PASSWORD=adp_pass
-      - MONGO_PASSWORD=adp_pass
+  # mcp-runtime:
+  #   build:
+  #     context: .
+  #   container_name: adp-mcp-runtime
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     pgvector:
+  #       condition: service_healthy
+  #     mongodb:
+  #       condition: service_healthy
+  #   volumes:
+  #     - ./config:/opt/adp/config:ro
+  #     - ./localfs:/opt/adp/localfs
+  #     - ./logs:/opt/adp/logs
+  #   environment:
+  #     - ADP_USERNAME=demo
+  #     - ADP_PASSWORD=demo
+  #     - PG_PASSWORD=adp_pass
+  #     - MONGO_PASSWORD=adp_pass
 
   postgres:
     image: postgres:15
