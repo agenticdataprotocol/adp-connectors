@@ -34,7 +34,10 @@ from adp_sdk.types.requests import DiscoverFilter
 from mcp.server.fastmcp import Context, FastMCP
 from mcp.shared.exceptions import McpError
 from mcp.types import INTERNAL_ERROR, INVALID_PARAMS, ErrorData
-from pydantic import Field
+from pydantic import Field, GetCoreSchemaHandler, TypeAdapter, ValidationError
+from pydantic.annotated_handlers import GetJsonSchemaHandler
+from pydantic.json_schema import JsonSchemaValue
+from pydantic_core import core_schema as cs
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +45,39 @@ _ENV_VAR_USERNAME = "ADP_USERNAME"
 _ENV_VAR_PASSWORD = "ADP_PASSWORD"
 
 _VALID_INTENT_CLASSES: frozenset[str] = frozenset({"LOOKUP", "QUERY", "INGEST", "REVISE"})
+
+_intent_adapter: TypeAdapter[Intent] = TypeAdapter(Intent)
+
+
+class RawIntent:
+    """Accept any dict for MCP tool arguments while exposing the full
+    Intent discriminated-union JSON schema to tool definitions.
+
+    This lets FastMCP advertise the rich schema to agents while deferring
+    strict validation to the tool function body, where errors can be
+    formatted in an agent-friendly way.
+    """
+
+    def __init__(self, data: dict[str, Any]) -> None:
+        self.data = data
+
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls, source_type: Any, handler: GetCoreSchemaHandler
+    ) -> cs.CoreSchema:
+        return cs.no_info_plain_validator_function(cls._validate)
+
+    @classmethod
+    def _validate(cls, v: Any) -> "RawIntent":
+        if isinstance(v, dict):
+            return cls(v)
+        raise ValueError("Intent must be a JSON object")
+
+    @classmethod
+    def __get_pydantic_json_schema__(
+        cls, _core_schema: cs.CoreSchema, handler: GetJsonSchemaHandler
+    ) -> JsonSchemaValue:
+        return handler(_intent_adapter.core_schema)
 
 
 def _build_authorization() -> str | None:
@@ -82,6 +118,45 @@ def _agent_friendly_message(error: ADPError) -> str:
     if hint:
         return f"{error.message} | Hint: {hint}"
     return error.message
+
+
+_MAX_SUMMARY_ERRORS = 3
+
+
+def _format_loc(loc: tuple[str | int, ...]) -> str:
+    """Format a Pydantic ``loc`` tuple into a readable dotted path."""
+    if not loc:
+        return "<root>"
+    parts: list[str] = []
+    for segment in loc:
+        if isinstance(segment, int):
+            if parts:
+                parts[-1] = f"{parts[-1]}[{segment}]"
+            else:
+                parts.append(f"[{segment}]")
+        else:
+            parts.append(str(segment))
+    return ".".join(parts)
+
+
+def _format_validation_error(prefix: str, error: ValidationError) -> str:
+    """Format a Pydantic ``ValidationError`` into a concise, agent-friendly message.
+
+    Mirrors the Hypervisor's ``_format_validation_error`` style: shows up to
+    ``_MAX_SUMMARY_ERRORS`` individual issues and summarises the rest.
+    """
+    raw_errors = error.errors(include_url=False, include_input=False, include_context=False)
+    if not raw_errors:
+        return prefix
+    snippets: list[str] = []
+    for e in raw_errors[:_MAX_SUMMARY_ERRORS]:
+        path = _format_loc(e["loc"])
+        snippets.append(f"`{path}`: {e['msg']}" if path != "<root>" else e["msg"])
+    summary = f"{prefix}: {'; '.join(snippets)}"
+    remaining = len(raw_errors) - _MAX_SUMMARY_ERRORS
+    if remaining > 0:
+        summary += f"; and {remaining} more"
+    return summary + "."
 
 
 def create_server(config_path: str) -> FastMCP:
@@ -259,7 +334,7 @@ def create_server(config_path: str) -> FastMCP:
     @mcp.tool()
     async def adp_validate(
         intent: Annotated[
-            Intent,
+            RawIntent,
             Field(
                 description=(
                     "The intent IR object to validate. "
@@ -276,9 +351,18 @@ def create_server(config_path: str) -> FastMCP:
         if ctx is None:
             raise McpError(ErrorData(code=INTERNAL_ERROR, message="MCP context is unavailable"))
         session: ClientSession = ctx.request_context.lifespan_context["session"]
-        logger.debug("adp_validate called: intent=%r", intent)
         try:
-            result = await session.validate(intent=intent)
+            parsed_intent = _intent_adapter.validate_python(intent.data)
+        except ValidationError as e:
+            raise McpError(
+                ErrorData(
+                    code=INVALID_PARAMS,
+                    message=_format_validation_error("Intent validation failed", e),
+                )
+            ) from e
+        logger.debug("adp_validate called: intent=%r", parsed_intent)
+        try:
+            result = await session.validate(intent=parsed_intent)
         except ADPError as e:
             logger.error("adp_validate failed: %s", e, exc_info=True)
             raise McpError(
@@ -295,7 +379,7 @@ def create_server(config_path: str) -> FastMCP:
     @mcp.tool()
     async def adp_execute(
         intent: Annotated[
-            Intent,
+            RawIntent,
             Field(
                 description=(
                     "The intent IR object to execute. "
@@ -317,9 +401,18 @@ def create_server(config_path: str) -> FastMCP:
             raise McpError(ErrorData(code=INTERNAL_ERROR, message="MCP context is unavailable"))
         session: ClientSession = ctx.request_context.lifespan_context["session"]
         cursor = cursor or None
-        logger.debug("adp_execute called: intent=%r, cursor=%r", intent, cursor)
         try:
-            result = await session.execute(intent=intent, cursor=cursor)
+            parsed_intent = _intent_adapter.validate_python(intent.data)
+        except ValidationError as e:
+            raise McpError(
+                ErrorData(
+                    code=INVALID_PARAMS,
+                    message=_format_validation_error("Intent validation failed", e),
+                )
+            ) from e
+        logger.debug("adp_execute called: intent=%r, cursor=%r", parsed_intent, cursor)
+        try:
+            result = await session.execute(intent=parsed_intent, cursor=cursor)
         except ADPError as e:
             logger.error("adp_execute failed: %s", e, exc_info=True)
             raise McpError(
