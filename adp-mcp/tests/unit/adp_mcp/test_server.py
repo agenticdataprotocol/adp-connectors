@@ -315,3 +315,75 @@ class TestAdpExecute(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(session.execute.called)
         self.assertTrue(result.isError)
         self.assertIn("validation", result.content[0].text.lower())
+
+
+# ===========================================================================
+
+
+class TestUnexpectedExceptionHandling(unittest.IsolatedAsyncioTestCase):
+    """Tests for non-ADPError exception catch-all in all tool functions."""
+
+    async def test_discover_unexpected_error(self) -> None:
+        session = _mock_session()
+        session.discover.side_effect = ConnectionError("connection refused")
+        server = create_server("/fake/config")
+
+        with _patch_stdio_client(session):
+            async with create_connected_server_and_client_session(server) as client:
+                result = await client.call_tool("adp_discover", {})
+
+        self.assertTrue(result.isError)
+        self.assertIn("ConnectionError", result.content[0].text)
+        self.assertIn("connection refused", result.content[0].text)
+
+    async def test_describe_unexpected_error(self) -> None:
+        session = _mock_session()
+        session.describe.side_effect = RuntimeError("subprocess crashed")
+        server = create_server("/fake/config")
+
+        with _patch_stdio_client(session):
+            async with create_connected_server_and_client_session(server) as client:
+                result = await client.call_tool(
+                    "adp_describe",
+                    {"resource_id": "com.acme:users", "intent_class": "QUERY"},
+                )
+
+        self.assertTrue(result.isError)
+        self.assertIn("RuntimeError", result.content[0].text)
+        self.assertIn("subprocess crashed", result.content[0].text)
+
+    async def test_validate_unexpected_error(self) -> None:
+        session = _mock_session()
+        session.validate.side_effect = TimeoutError("request timed out")
+        server = create_server("/fake/config")
+        intent = {
+            "intentClass": "QUERY",
+            "resourceId": "com.acme:users",
+            "predicates": {"op": "AND", "predicates": []},
+        }
+
+        with _patch_stdio_client(session):
+            async with create_connected_server_and_client_session(server) as client:
+                result = await client.call_tool("adp_validate", {"intent": intent})
+
+        self.assertTrue(result.isError)
+        self.assertIn("TimeoutError", result.content[0].text)
+        self.assertIn("request timed out", result.content[0].text)
+
+    async def test_execute_unexpected_error(self) -> None:
+        session = _mock_session()
+        session.execute.side_effect = OSError("broken pipe")
+        server = create_server("/fake/config")
+        intent = {
+            "intentClass": "QUERY",
+            "resourceId": "com.acme:users",
+            "predicates": {"op": "AND", "predicates": []},
+        }
+
+        with _patch_stdio_client(session):
+            async with create_connected_server_and_client_session(server) as client:
+                result = await client.call_tool("adp_execute", {"intent": intent})
+
+        self.assertTrue(result.isError)
+        self.assertIn("OSError", result.content[0].text)
+        self.assertIn("broken pipe", result.content[0].text)

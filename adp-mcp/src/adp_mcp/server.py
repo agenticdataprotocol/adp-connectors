@@ -149,6 +149,14 @@ def create_server(config_path: str) -> FastMCP:
         except ADPError as e:
             logger.error("adp_discover failed: %s", e, exc_info=True)
             raise McpError(ErrorData(code=INTERNAL_ERROR, message=str(e))) from e
+        except Exception as e:
+            logger.exception("Unexpected error in adp_discover: %s", e)
+            raise McpError(
+                ErrorData(
+                    code=INTERNAL_ERROR,
+                    message=f"Unexpected internal error: {type(e).__name__}: {e}",
+                )
+            ) from e
         payload = json.dumps(result.model_dump(by_alias=True, exclude_none=True), indent=2)
         logger.debug("adp_discover returned %d resources", len(result.resources))
         return payload
@@ -204,6 +212,14 @@ def create_server(config_path: str) -> FastMCP:
         except ADPError as e:
             logger.error("adp_describe failed: %s", e, exc_info=True)
             raise McpError(ErrorData(code=INTERNAL_ERROR, message=str(e))) from e
+        except Exception as e:
+            logger.exception("Unexpected error in adp_describe: %s", e)
+            raise McpError(
+                ErrorData(
+                    code=INTERNAL_ERROR,
+                    message=f"Unexpected internal error: {type(e).__name__}: {e}",
+                )
+            ) from e
         payload = json.dumps(result.model_dump(by_alias=True, exclude_none=True), indent=2)
         logger.debug("adp_describe returned for %s/%s", resource_id, intent_class)
         return payload
@@ -234,6 +250,14 @@ def create_server(config_path: str) -> FastMCP:
         except ADPError as e:
             logger.error("adp_validate failed: %s", e, exc_info=True)
             raise McpError(ErrorData(code=INTERNAL_ERROR, message=str(e))) from e
+        except Exception as e:
+            logger.exception("Unexpected error in adp_validate: %s", e)
+            raise McpError(
+                ErrorData(
+                    code=INTERNAL_ERROR,
+                    message=f"Unexpected internal error: {type(e).__name__}: {e}",
+                )
+            ) from e
         payload = json.dumps(result.model_dump(by_alias=True, exclude_none=True), indent=2)
         logger.debug("adp_validate returned: valid=%s", result.valid)
         return payload
@@ -269,6 +293,14 @@ def create_server(config_path: str) -> FastMCP:
         except ADPError as e:
             logger.error("adp_execute failed: %s", e, exc_info=True)
             raise McpError(ErrorData(code=INTERNAL_ERROR, message=str(e))) from e
+        except Exception as e:
+            logger.exception("Unexpected error in adp_execute: %s", e)
+            raise McpError(
+                ErrorData(
+                    code=INTERNAL_ERROR,
+                    message=f"Unexpected internal error: {type(e).__name__}: {e}",
+                )
+            ) from e
         payload = json.dumps(result.model_dump(by_alias=True, exclude_none=True), indent=2)
         logger.debug("adp_execute returned %d results", len(result.results))
         return payload
