@@ -102,7 +102,16 @@ def create_server(config_path: str) -> FastMCP:
             Field(description="Filter by intent class: LOOKUP, QUERY, INGEST, or REVISE."),
         ] = None,
         keyword: Annotated[
-            str | None, Field(description="Keyword search across resource names and descriptions.")
+            str | None,
+            Field(
+                description=(
+                    "Case-insensitive keyword filter across resource IDs, "
+                    "descriptions, and tags. Plain text performs substring "
+                    "matching (e.g. 'user' matches 'user_profiles'). "
+                    "Glob wildcards (*, ?, [) are also supported "
+                    "(e.g. '*bank*failure*')."
+                )
+            ),
         ] = None,
         cursor: Annotated[
             str | None, Field(description="Pagination cursor from a previous discover response.")
