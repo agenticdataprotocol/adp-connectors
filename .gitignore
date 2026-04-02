@@ -23,6 +23,10 @@ adp-mcp/docker/localfs/notes/*
 adp-mcp/docker/localfs/reports/*
 !adp-mcp/docker/localfs/reports/.gitkeep
 
+# Node
+node_modules/
+package-lock.json
+
 # Editors
 .DS_Store
 .idea/

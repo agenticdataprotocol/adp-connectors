@@ -1,0 +1,16 @@
+INVOICE #005
+------------
+Date:       2025-12-10
+Status:     PENDING
+
+Bill To:
+  Carol White
+  carol@example.com
+  San Francisco, CA
+
+Items:
+  1 x Wireless Mouse            $29.99
+                                -------
+  Total                         $29.99
+
+Thank you for shopping with us!

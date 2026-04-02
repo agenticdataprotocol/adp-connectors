@@ -8,6 +8,7 @@ A monorepo for ADP (Agentic Data Protocol) connector sub-projects.
 |-----------|---------|-------------|
 | [`adp-mcp/`](./adp-mcp/) | `adp-mcp` | MCP server bridging LLM agents to ADP Hypervisor |
 | [`adp-skills/`](./adp-skills/) | — | Agent skills for ADP integration |
+| [`adp-openclaw-plugin/`](./adp-openclaw-plugin/) | `adp-openclaw-plugin` | OpenClaw plugin that bridges ADP Hypervisor operations as native OpenClaw tools |
 
 ## Docker Quickstart
 

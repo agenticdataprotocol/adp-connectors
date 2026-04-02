@@ -1,0 +1,16 @@
+INVOICE #001
+------------
+Date:       2025-12-01
+Status:     SHIPPED
+
+Bill To:
+  Alice Johnson
+  alice@example.com
+  Seattle, WA
+
+Items:
+  1 x Wireless Mouse            $29.99
+                                -------
+  Total                         $29.99
+
+Thank you for shopping with us!

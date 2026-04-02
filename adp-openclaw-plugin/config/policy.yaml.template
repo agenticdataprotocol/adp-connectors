@@ -1,0 +1,42 @@
+# Copyright 2026 Datastrato, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Policy Manifest Template
+# Defines governance policies (rules) for resource access.
+#
+# Copy this file as policy.yaml and customize for your environment.
+#
+# Each policy is a flat entry with its own type and scope:
+#   - ACCESS         uses resourceSelector (exact or wildcard) and defines
+#                    which roles may use which intent classes.
+#   - MANDATORY_FILTER uses resourceId (exact) and adds a required predicate
+#                    to every query against that resource.
+#   - OPERATIONAL    uses resourceId (exact) and enforces limits / default sort.
+#
+# Resource selector wildcard rules (ACCESS only):
+#   - Exact:               "namespace:name"       e.g. "com.example:orders"
+#   - All in namespace:    "ns:*"                 e.g. "com.example:*"
+#   - Namespace prefix:    "ns.*" or "ns.sub.*"   e.g. "com.example.*"
+#   - Catch-all:           "*"
+
+version: "1.0.0"
+
+# Bootstrap Mode (read-only access for the default role):
+# Please uncomment the below policies before use.
+# policies:
+#   - type: "ACCESS"
+#     resourceSelector: "*"
+#     roles:
+#       - role: default
+#         allowedIntents: ["LOOKUP", "QUERY"]

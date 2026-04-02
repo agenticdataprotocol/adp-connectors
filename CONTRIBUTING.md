@@ -38,6 +38,14 @@ uv run mypy src/
 uv run python -m unittest discover -s tests -v
 ```
 
+For `adp-openclaw-plugin`, run the following commands from `adp-openclaw-plugin/`:
+
+```bash
+npm install
+npx vitest run
+npx tsc --noEmit
+```
+
 To verify repository-wide license headers, run the following command from the repository root:
 
 ```bash

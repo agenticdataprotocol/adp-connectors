@@ -1,0 +1,45 @@
+version: "1.0.0"
+
+backends:
+  - id: "pg_demo"
+    type: "RDBMS"
+    provider: "postgresql"
+    config:
+      type: "RDBMS"
+      uri: "postgresql://adp_user@postgres:5432/adp_demo"
+      schema: "public"
+    credentials:
+      type: "env"
+      key: "PG_PASSWORD"
+
+  - id: "pgvector_demo"
+    type: "VECTOR"
+    provider: "pgvector"
+    config:
+      type: "VECTOR"
+      index_name: "items"
+      endpoint: "postgresql://adp_user@pgvector:5432/adp_vector_demo"
+      dimensions: 3
+    credentials:
+      type: "env"
+      key: "PG_PASSWORD"
+
+  - id: "mongo_demo"
+    type: "NOSQL"
+    provider: "mongodb"
+    config:
+      type: "NOSQL"
+      uri: "mongodb://adp_user@mongodb:27017/?authSource=admin"
+      database: "adp_mongo_demo"
+    credentials:
+      type: "env"
+      key: "MONGO_PASSWORD"
+
+  - id: "localfs_demo"
+    type: "BLOB_STORAGE"
+    provider: "local"
+    config:
+      type: "BLOB_STORAGE"
+      uri: "/opt/adp/localfs"
+      ignore_patterns:
+        - ".*"

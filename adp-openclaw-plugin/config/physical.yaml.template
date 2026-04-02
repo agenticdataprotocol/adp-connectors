@@ -1,0 +1,73 @@
+# Copyright 2026 Datastrato, Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Physical Manifest Template
+# Defines the physical backends (data sources) for ADP curation.
+#
+# Copy this file as physical.yaml and customize for your environment.
+#
+# The `uri` field is relative and resolves from the Hypervisor's working
+# directory (CWD).  For production, use an absolute path.
+
+version: "1.0.0"
+
+backends:
+  # RDBMS Backend Example (PostgreSQL)
+  # - id: "my_database"
+  #   type: "RDBMS"
+  #   provider: "postgresql"       # required: implementation variant (e.g. postgresql, mysql)
+  #   config:
+  #     type: "RDBMS"
+  #     uri: "postgresql://user@localhost:5432/mydb"
+  #     schema: "public"           # optional: database schema name
+  #   credentials:
+  #     type: "env"
+  #     key: "DB_PASSWORD"
+
+  # Vector Backend Example (pgvector)
+  # - id: "my_vectors"
+  #   type: "VECTOR"
+  #   provider: "pgvector"         # required: implementation variant (e.g. pgvector)
+  #   config:
+  #     type: "VECTOR"
+  #     indexName: "embeddings"     # required: index or collection name
+  #     endpoint: "postgresql://user@localhost:5432/mydb"  # PostgreSQL DSN
+  #   credentials:
+  #     type: "env"
+  #     key: "PG_PASSWORD"
+
+  # NoSQL Backend Example (MongoDB)
+  # - id: "my_mongodb"
+  #   type: "NOSQL"
+  #   provider: "mongodb"          # required: implementation variant (e.g. mongodb)
+  #   config:
+  #     type: "NOSQL"
+  #     uri: "mongodb://localhost:27017"
+  #     database: "myapp"
+  #   credentials:
+  #     type: "env"
+  #     key: "MONGO_PASSWORD"
+
+  # Local Filesystem Backend Example
+  # - id: "local_files"
+  #   type: "BLOB_STORAGE"
+  #   provider: "local"            # required: "local" for POSIX-compliant file systems
+  #   config:
+  #     type: "BLOB_STORAGE"
+  #     uri: "/data/files"         # required: root directory path
+  #     allowSymlinks: false       # optional: allow following symlinks (default: false)
+  #     ignorePatterns:            # optional: gitignore-style glob patterns
+  #       - "*.tmp"
+  #       - ".git"
+  #     autoCreateSource: true     # optional: auto-create source directories (default: true)

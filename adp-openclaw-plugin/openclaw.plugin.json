@@ -1,0 +1,53 @@
+{
+  "id": "adp-openclaw-plugin",
+  "name": "ADP Bridge",
+  "description": "Bridge ADP Hypervisor operations as native OpenClaw tools via JSON-RPC",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "required": ["transport", "command", "username", "password"],
+    "properties": {
+      "transport": {
+        "type": "string",
+        "enum": ["stdio"],
+        "description": "Transport protocol (currently only stdio is supported)"
+      },
+      "command": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Full command to spawn the ADP Hypervisor process"
+      },
+      "username": {
+        "type": "string",
+        "description": "ADP username for RBAC authorization"
+      },
+      "password": {
+        "type": "string",
+        "description": "ADP password for RBAC authorization (use empty string if not required)"
+      },
+      "env": {
+        "type": "object",
+        "additionalProperties": { "type": "string" },
+        "description": "Additional environment variables for the Hypervisor subprocess"
+      }
+    }
+  },
+  "uiHints": {
+    "transport": {
+      "label": "Transport",
+      "help": "How to connect to ADP Hypervisor"
+    },
+    "command": {
+      "label": "Command",
+      "help": "Full command to spawn the ADP Hypervisor process (e.g. [\"python\", \"-m\", \"adp_hypervisor\", \"--config\", \"/path/to/config\"])"
+    },
+    "username": {
+      "label": "ADP Username",
+      "help": "Username for RBAC authorization"
+    },
+    "password": {
+      "label": "ADP Password",
+      "help": "Password for RBAC authorization (use empty string if not required)"
+    }
+  }
+}
