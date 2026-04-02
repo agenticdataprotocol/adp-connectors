@@ -244,7 +244,7 @@ class TestAdpValidate(unittest.IsolatedAsyncioTestCase):
         # Pydantic ValidationError should be caught and returned as MCP error text
         self.assertFalse(session.validate.called)
         self.assertTrue(result.isError)
-        self.assertIn("validation", result.content[0].text.lower())
+        self.assertIn("intent validation failed", result.content[0].text.lower())
 
     async def test_validate_with_issues(self) -> None:
         session = _mock_session(
@@ -345,7 +345,7 @@ class TestAdpExecute(unittest.IsolatedAsyncioTestCase):
 
         self.assertFalse(session.execute.called)
         self.assertTrue(result.isError)
-        self.assertIn("validation", result.content[0].text.lower())
+        self.assertIn("intent validation failed", result.content[0].text.lower())
 
     async def test_execute_adp_error(self) -> None:
         session = _mock_session()
@@ -480,3 +480,83 @@ class TestErrorHints(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(result.isError)
         self.assertIn("bad json", result.content[0].text)
         self.assertNotIn("Hint:", result.content[0].text)
+
+
+# ===========================================================================
+
+
+class TestIntentValidationFormatting(unittest.IsolatedAsyncioTestCase):
+    """Tests for agent-friendly intent validation error formatting."""
+
+    async def test_projections_object_format_gives_clear_error(self) -> None:
+        """Agent passes [{"fieldId": "x"}] instead of ["x"] for projections."""
+        session = _mock_session()
+        server = create_server("/fake/config")
+        intent = {
+            "intentClass": "QUERY",
+            "resourceId": "com.acme:users",
+            "predicates": {"fieldId": "id", "op": "EQ", "value": 1},
+            "projections": [
+                {"fieldId": "user_id"},
+                {"fieldId": "name"},
+                {"fieldId": "email"},
+                {"fieldId": "status"},
+            ],
+        }
+
+        with _patch_stdio_client(session):
+            async with create_connected_server_and_client_session(server) as client:
+                result = await client.call_tool("adp_execute", {"intent": intent})
+
+        self.assertFalse(session.execute.called)
+        self.assertTrue(result.isError)
+        error_text = result.content[0].text
+        # Should contain our formatted prefix
+        self.assertIn("Intent validation failed", error_text)
+        # Should mention projections path
+        self.assertIn("projections", error_text)
+        # Should NOT contain raw Pydantic URL noise
+        self.assertNotIn("pydantic.dev", error_text)
+        # Should NOT contain the internal model name
+        self.assertNotIn("Arguments", error_text)
+
+    async def test_error_aggregation_truncates(self) -> None:
+        """Many repeated errors should be aggregated, not listed individually."""
+        session = _mock_session()
+        server = create_server("/fake/config")
+        # 6 bad projection items → 6 errors, should be truncated to 3 + "and 3 more"
+        intent = {
+            "intentClass": "QUERY",
+            "resourceId": "com.acme:users",
+            "predicates": {"fieldId": "id", "op": "EQ", "value": 1},
+            "projections": [{"fieldId": f"f{i}"} for i in range(6)],
+        }
+
+        with _patch_stdio_client(session):
+            async with create_connected_server_and_client_session(server) as client:
+                result = await client.call_tool("adp_execute", {"intent": intent})
+
+        self.assertTrue(result.isError)
+        error_text = result.content[0].text
+        self.assertIn("and 3 more", error_text)
+
+    async def test_valid_intent_still_works(self) -> None:
+        """A well-formed intent should pass through RawIntent and execute normally."""
+        rows = [{"id": 1}]
+        session = _mock_session(execute_result={"results": rows})
+        server = create_server("/fake/config")
+        intent = {
+            "intentClass": "QUERY",
+            "resourceId": "com.acme:users",
+            "predicates": {"fieldId": "id", "op": "EQ", "value": 1},
+            "projections": ["id", "name"],
+        }
+
+        with _patch_stdio_client(session):
+            async with create_connected_server_and_client_session(server) as client:
+                result = await client.call_tool("adp_execute", {"intent": intent})
+
+        self.assertFalse(result.isError)
+        raw = json.loads(result.content[0].text)
+        self.assertEqual(raw["results"], rows)
+        self.assertTrue(session.execute.called)
